@@ -1,8 +1,11 @@
 import {
+  Member,
   MemberStatus,
   MemberType,
   Prisma,
   PrismaClient,
+  Tenant,
+  User,
   UserRole,
   UserStatus,
 } from "@prisma/client";
@@ -368,80 +371,103 @@ export class TenantService extends Service {
     return this.run(async () => {
       const prisma = this.tenantRepo.prisma;
 
+      let tenant: Tenant | null = null;
+      let user: User | null = null;
+      let member: Member | null = null;
 
       try {
-        const result = await prisma.$transaction(async (tx) => {
+        const existingTenant = await prisma.tenant.findFirst({
+          where: {
+            OR: [
+              { name: tenantData.name },
+              { slug: tenantData.slug },
+              { email: tenantData.email },
+            ],
+          },
+        });
 
-          const existingTenant = await tx.tenant.findFirst({
-            where: {
-              OR: [
-                { name: tenantData.name },
-                { slug: tenantData.slug },
-                { email: tenantData.email },
-              ],
-            },
-          });
-          if (existingTenant) {
-            throw new Error(
-              "Tenant with same name, slug, or email already exists"
-            );
-          }
-
-
-          const tenant = await tx.tenant.create({ data: tenantData });
+        if (existingTenant) {
+          throw new Error(
+            "Tenant with same name, slug, or email already exists"
+          );
+        }
 
 
-          const { password, email, branchId, role,twoFactorEnabled,...memberData } = adminData;
+        tenant = await prisma.tenant.create({
+          data: tenantData,
+        });
 
-          const tempPassword = password ?? generateTempKey(email, "", 6);
-          const passwordHash = await bcrypt.hash(tempPassword, 10);
+        const { password, email, branchId, twoFactorEnabled, role,...memberData } =
+          adminData;
 
-          const userData = {
+        const tempPassword: string = password ?? generateTempKey(email, "", 6);
+
+        const passwordHash: string = await bcrypt.hash(tempPassword, 10);
+
+ 
+        user = await prisma.user.create({
+          data: {
             email,
             passwordHash,
             role: UserRole.TENANT_ADMIN,
             status: UserStatus.ACTIVE,
-            twoFactorEnabled: adminData.twoFactorEnabled ?? false,
+            twoFactorEnabled: twoFactorEnabled ?? false,
             tenantId: tenant.id,
-          };
+          },
+        });
 
-          const createdUser = await tx.user.create({ data: userData });
-
-
-          const memberPayload = {
+   
+        member = await prisma.member.create({
+          data: {
             ...memberData,
-            userId: createdUser.id,
+            userId: user.id,
             tenantId: tenant.id,
             branchId,
             memberNumber: `M-${Date.now()}`,
             memberType: MemberType.MEMBER,
             memberStatus: MemberStatus.ACTIVE,
             email,
-          };
+          },
+        });
 
-          await tx.member.create({ data: memberPayload });
-
-          await this.mailService.sendNewEmployeeCredentialsMail({
-            to: email,
-            email,
-            temPassword: tempPassword,
-            organizationName: tenant.name,
-            role: UserRole.TENANT_ADMIN,
-            firstName: memberData.firstName ?? "",
-            lastName: memberData.lastName ?? "",
-          });
-
-          return { tenant, admin: createdUser };
+ 
+        await this.mailService.sendNewEmployeeCredentialsMail({
+          to: email,
+          email,
+          temPassword: tempPassword,
+          organizationName: tenant.name,
+          role: UserRole.TENANT_ADMIN,
+          firstName: memberData.firstName ?? "",
+          lastName: memberData.lastName ?? "",
         });
 
         return this.success({
-          data: result,
+          data: { tenant, admin: user },
           message: "Tenant and tenant admin created successfully",
           code: 201,
         });
-      } catch (err) {
+      } catch (error) {
+        //  COMPENSATING ACTIONS (ROLLBACK)
+        if (member) {
+          await prisma.member
+            .delete({ where: { id: member.id } })
+            .catch(() => undefined);
+        }
+
+        if (user) {
+          await prisma.user
+            .delete({ where: { id: user.id } })
+            .catch(() => undefined);
+        }
+
+        if (tenant) {
+          await prisma.tenant
+            .delete({ where: { id: tenant.id } })
+            .catch(() => undefined);
+        }
+
         return this.error(
-          (err as Error).message || "Failed to create tenant with admin"
+          (error as Error).message || "Failed to create tenant with admin"
         );
       }
     }, "Failed to create tenant with admin");
