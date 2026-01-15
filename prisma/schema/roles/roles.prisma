@@ -1,0 +1,282 @@
+model Permission {
+  id          String           @id @default(cuid())
+  module      FeatureModule    @default(MEMBERS)
+  action      PermissionAction
+  description String?
+
+  // Audit
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  rolePermissions         RolePermission[]
+  userPermissionOverrides UserPermissionOverride[]
+
+  @@unique([module, action])
+  @@index([module])
+  @@map("permissions")
+}
+
+model Role {
+  id             String   @id @default(cuid())
+  tenantId       String
+  name           String
+  code           UserRole
+  description    String?
+  isSystem       Boolean  @default(false)
+  isActive       Boolean  @default(true)
+  hierarchyLevel Int      @default(0)
+
+  // Soft delete
+  isDeleted   Boolean   @default(false)
+  deletedById String?
+  deletedAt   DateTime?
+
+  // Audit
+  createdBy String?
+  updatedBy String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  tenant          Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  permissions     RolePermission[]
+  userAssignments UserRoleAssignment[]
+
+  @@unique([tenantId, name])
+  @@unique([tenantId, code])
+  @@index([tenantId])
+  @@index([isActive])
+  @@index([hierarchyLevel])
+  @@map("roles")
+}
+
+model RolePermission {
+  id           String @id @default(cuid())
+  roleId       String
+  permissionId String
+
+  // Scope limitations
+  branchScope      PermissionScope @default(ALL)
+  departmentScope  PermissionScope @default(ALL)
+  customConditions Json?
+
+  // Audit
+  grantedBy String
+  grantedAt DateTime  @default(now())
+  expiresAt DateTime?
+  isActive  Boolean   @default(true)
+
+  // Relations
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, permissionId])
+  @@index([roleId])
+  @@index([permissionId])
+  @@index([isActive])
+  @@map("role_permissions")
+}
+
+model UserRoleAssignment {
+  id     String @id @default(cuid())
+  userId String
+  roleId String
+
+  assignedBy String
+  assignedAt DateTime  @default(now())
+  expiresAt  DateTime?
+  isActive   Boolean   @default(true)
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roleId])
+  @@index([userId])
+  @@index([roleId])
+  @@index([isActive])
+  @@map("user_role_assignments")
+}
+
+model UserPermissionOverride {
+  id           String @id @default(cuid())
+  userId       String
+  permissionId String
+
+  grantedBy String
+  reason    String?
+  expiresAt DateTime?
+  isActive  Boolean   @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, permissionId])
+  @@index([userId])
+  @@index([isActive])
+  @@map("user_permission_overrides")
+}
+
+enum PermissionScope {
+  NONE
+  SELF
+  TEAM
+  BRANCH
+  DEPARTMENT
+  ALL
+}
+
+enum PermissionAction {
+  CREATE
+  READ
+  UPDATE
+  DELETE
+  APPROVE
+  REJECT
+  PUBLISH
+  ARCHIVE
+  EXPORT
+  IMPORT
+}
+
+enum FeatureModule {
+  // Member Management
+  MEMBERS
+  MEMBER_REGISTRATION
+  MEMBER_DIRECTORY
+  MEMBER_SEARCH
+  MEMBER_FILTERING
+  MEMBER_PROFILE
+  MEMBER_STATUS_TRACKING
+
+  // Community Management
+  COMMUNITIES
+  CELL_MANAGEMENT
+  MINISTRY_MANAGEMENT
+  PROFESSION_MANAGEMENT
+  TRIBE_MANAGEMENT
+  COMMUNITY_LEADERSHIP
+  COMMUNITY_MEETINGS
+
+  // Attendance & Tracking
+  ATTENDANCE_TRACKING
+  BIOMETRIC_ATTENDANCE
+  MOBILE_CHECKIN
+  VIRTUAL_ATTENDANCE
+  ATTENDANCE_REPORTS
+
+  // Services & Events
+  SERVICES
+  EVENTS
+  EVENT_REGISTRATION
+  EVENT_TICKETING
+  TRAVEL_BOOKING
+
+  // Leadership & Hierarchy
+  LEADERSHIP_HIERARCHY
+  LEADERSHIP_APPOINTMENTS
+  PROMOTION_REQUESTS
+  APPRAISALS
+  WORKER_TRANSITIONS
+  LEADER_APPROVAL
+
+  // Departments & Volunteers
+  DEPARTMENTS
+  VOLUNTEER_MANAGEMENT
+  VOLUNTEER_SHIFTS
+  DEPARTMENT_ASSIGNMENTS
+
+  // Financial Management
+  FINANCIAL_MANAGEMENT
+  ONLINE_GIVING
+  DONATION_TRACKING
+  PLEDGE_MANAGEMENT
+  ACCOUNTING_SYSTEM
+  TRANSACTION_MANAGEMENT
+  PAYMENT_GATEWAY
+  FINANCIAL_REPORTS
+  DONATION_RECEIPTS
+
+  // Loyalty & Gamification
+  LOYALTY_PROGRAM
+  LOYALTY_POINTS
+  MEMBER_BADGES
+  COMPETITION_MANAGEMENT
+  LEADERBOARD
+  TIER_MANAGEMENT
+  REWARDS_REDEMPTION
+
+  // AI & Training
+  AI_TRAINING
+  AI_CERTIFICATION
+  TRAINING_CONTENT
+  CERTIFICATION_MANAGEMENT
+  DISCUSSION_PROMPTS
+  COMMUNITY_COMPETITIONS
+  PREDICTIVE_ANALYTICS
+
+  // Broadcasting & Communication
+  LIVE_STREAMING
+  BROADCAST_MANAGEMENT
+  SERMON_MANAGEMENT
+  HEADLINING_MANAGEMENT
+  AI_VIRTUAL_ASSISTANT
+  NEXT_GEN_BROADCASTING
+
+  // Content & Communication
+  CHATBOT_MANAGEMENT
+  PRAYER_REQUESTS
+  PRAYER_ENGAGEMENT
+  GROUP_MESSAGING
+  DIRECT_MESSAGING
+  NOTIFICATION_SYSTEM
+  EMAIL_MANAGEMENT
+  SMS_MANAGEMENT
+
+  // Chat & Messaging
+  COMMUNITY_CHAT
+  BRANCH_WIDE_CHAT
+  CHURCH_WIDE_CHAT
+  DIRECT_CHAT
+  CHAT_MODERATION
+  CHAT_ANALYTICS
+
+  // Surveys & Feedback
+  SURVEYS
+  SURVEY_RESPONSES
+  FEEDBACK_MANAGEMENT
+
+  // B2B & Partnerships
+  PARTNER_MANAGEMENT
+  DISCOUNT_MANAGEMENT
+  LOYALTY_REDEMPTION
+
+  // System & Administration
+  SYSTEM_ADMIN
+  USER_MANAGEMENT
+  ROLE_MANAGEMENT
+  PERMISSION_MANAGEMENT
+  BRANCH_MANAGEMENT
+  TENANT_MANAGEMENT
+  API_TOKEN_MANAGEMENT
+  AUDIT_LOGS
+  SETTINGS
+  ONBOARDING
+  OFFBOARDING
+
+  // PWA & Mobile
+  PWA_MANAGEMENT
+  OFFLINE_SYNC
+  MOBILE_APP
+
+  // Reports & Analytics
+  ANALYTICS
+  REPORTING
+  DASHBOARD
+  HEALTH_SCORING
+}

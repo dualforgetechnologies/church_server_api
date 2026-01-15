@@ -1,0 +1,110 @@
+model User {
+  id               String    @id @default(cuid())
+  tenantId         String?
+  email            String
+  emailVerified    DateTime?
+  passwordHash     String?
+  twoFactorEnabled Boolean   @default(false)
+  twoFactorSecret  String?
+  lastLogin        DateTime?
+  lastLoginIp      String?
+  role             UserRole  @default(MEMBER)
+
+  // Status
+  status             UserStatus @default(PENDING)
+  deactivatedAt      DateTime?
+  deactivatedBy      String?
+  deactivationReason String?
+
+  // Audit
+  createdBy String?
+  updatedBy String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  tenant                   Tenant?                    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  member                   Member?
+  roleAssignments          UserRoleAssignment[]
+  permissionOverrides      UserPermissionOverride[]
+  branches                 UserBranchAssignment[]
+  // departments           UserDepartmentAssignment[]
+  // auditLogs             AuditLog[]
+  AuditLog                 AuditLog[]
+  Community                Community[]
+  Department               Department[]
+  UserDepartmentAssignment UserDepartmentAssignment[]
+  LoginHistory             LoginHistory[]
+  RefreshToken             RefreshToken[]
+
+  @@unique([tenantId, email])
+  @@index([tenantId])
+  @@index([email])
+  @@index([status])
+  @@map("users")
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+  PENDING
+  DEACTIVATED
+}
+
+enum UserRole {
+  SUPER_ADMIN // System-wide access
+  TENANT_ADMIN // Organization-level access
+  ARCHBISHOP // Highest church leadership
+  SENIOR_BISHOP // Senior ecclesiastical authority
+  BISHOP // Regional church leader
+  SHEPHERD // Community/cell leader
+  PASTOR // Church pastor
+  WORKER // Church worker/volunteer
+  COUNSELOR // Church counselor
+  COMMUNITY_LEADER // Community group leader
+  DEPARTMENT_HEAD // Department manager
+  VOLUNTEER_COORDINATOR // Volunteer coordinator
+  MEMBER // Regular member
+  GUEST // Guest/visitor
+}
+
+model LoginHistory {
+  id          String      @id @default(cuid())
+  userId      String
+  loginStatus LoginStatus
+  loginMethod LoginMethod
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime    @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([loginStatus])
+  @@index([createdAt])
+}
+
+enum LoginStatus {
+  SUCCESS
+  FAILED
+}
+
+enum LoginMethod {
+  PASSWORD
+  SOCIAL
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}

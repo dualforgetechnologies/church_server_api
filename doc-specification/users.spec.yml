@@ -1,0 +1,302 @@
+paths:
+  /api/v1/users:
+    post:
+      tags: [Users]
+      summary: Create a new user (Admin only)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateUserDto'
+      responses:
+        '201':
+          description: User created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '400': { description: Validation error }
+        '401': { description: Unauthorized }
+        '409': { description: Email already exists }
+    get:
+      tags: [Users]
+      summary: Get all users with optional filters, pagination, and sorting
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: email
+          in: query
+          schema: { type: string }
+        - name: role
+          in: query
+          schema: { $ref: '#/components/schemas/UserRole' }
+        - name: status
+          in: query
+          schema: { $ref: '#/components/schemas/UserStatus' }
+        - name: tenantId
+          in: query
+          schema: { type: string }
+        - name: branchId
+          in: query
+          schema: { type: string }
+        - name: page
+          in: query
+          schema: { type: integer, default: 1 }
+        - name: limit
+          in: query
+          schema: { type: integer, default: 20 }
+        - name: sortBy
+          in: query
+          schema:
+            type: string
+            enum: [createdAt, updatedAt, email]
+            default: createdAt
+        - name: sortOrder
+          in: query
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: desc
+      responses:
+        '200':
+          description: List of users
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/UserResponse' }
+        '401': { description: Unauthorized }
+
+  /api/v1/users/{id}:
+    get:
+      tags: [Users]
+      summary: Get a single user by ID
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: User found
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UserResponse' }
+        '401': { description: Unauthorized }
+        '404': { description: User not found }
+
+    put:
+      tags: [Users]
+      summary: Update user by ID
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateUserDto' }
+      responses:
+        '200':
+          description: User updated successfully
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UserResponse' }
+        '400': { description: Validation error }
+        '401': { description: Unauthorized }
+        '404': { description: User not found }
+
+    delete:
+      tags: [Users]
+      summary: Delete a user by ID
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: User deleted successfully }
+        '401': { description: Unauthorized }
+        '404': { description: User not found }
+
+  /api/v1/users/signup:
+    post:
+      tags: [Users]
+      summary: Signup a new member (Self-service)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SignupUserDto' }
+      responses:
+        '201':
+          description: User signed up successfully
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UserResponse' }
+        '400': { description: Validation error }
+        '409': { description: Email already exists }
+
+  /api/v1/users/super-admin:
+    post:
+      tags: [Users]
+      summary: Create a super administrator
+      description: Creates a system-level super admin. Requires authentication.
+      security:
+        - SuperAdminSecret: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateSuperAdminDto'
+      responses:
+        '201':
+          description: Super admin created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '400': { description: Validation error }
+        '401': { description: Unauthorized }
+        '409': { description: Email already exists }
+
+components:
+  schemas:
+    Gender:
+      type: string
+      enum: [MALE, FEMALE, OTHER, PREFER_NOT_TO_SAY]
+
+    MaritalStatus:
+      type: string
+      enum: [SINGLE, MARRIED, DIVORCED, WIDOWED, SEPARATED]
+
+    MemberType:
+      type: string
+      enum: [NEW_CONVERT, MEMBER, WORKER, LEADER, PASTOR, BISHOP, SENIOR_BISHOP, ARCHBISHOP, GUEST]
+
+    MemberStatus:
+      type: string
+      enum: [ACTIVE, INACTIVE, TRANSFERRED, DECEASED, SUSPENDED]
+
+    UserRole:
+      type: string
+      enum: [TENANT_ADMIN, ARCHBISHOP, SENIOR_BISHOP, BISHOP, SHEPHERD, PASTOR, WORKER, COUNSELOR, COMMUNITY_LEADER, DEPARTMENT_HEAD, VOLUNTEER_COORDINATOR, MEMBER, GUEST]
+
+    UserStatus:
+      type: string
+      enum: [ACTIVE, INACTIVE, SUSPENDED, PENDING, DEACTIVATED]
+
+    SignupUserDto:
+      type: object
+      required: [email, password]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string }
+        firstName: { type: string }
+        lastName: { type: string }
+        branchId: { type: string }
+        role: { $ref: '#/components/schemas/UserRole', default: MEMBER }
+        twoFactorEnabled: { type: boolean, default: false }
+        gender: { $ref: '#/components/schemas/Gender' }
+        maritalStatus: { $ref: '#/components/schemas/MaritalStatus' }
+        dateOfBirth: { type: string, format: date }
+        phone: { type: string }
+        address: { type: string }
+        city: { type: string }
+        state: { type: string }
+        country: { type: string }
+        postalCode: { type: string }
+        profession: { type: string }
+        baptismDate: { type: string, format: date }
+        preferredLanguage: { type: string, default: en }
+        profilePhoto: { type: string, format: uri }
+        biometricId: { type: string }
+        privacySettings:
+          type: object
+          additionalProperties: true
+        notificationSettings:
+          type: object
+          additionalProperties: true
+        cellId: { type: string }
+        ministryId: { type: string }
+        departmentId: { type: string }
+
+    CreateUserDto:
+      allOf:
+        - $ref: '#/components/schemas/SignupUserDto'
+        - type: object
+          properties:
+            status: { $ref: '#/components/schemas/UserStatus' }
+
+    UpdateUserDto:
+      allOf:
+        - $ref: '#/components/schemas/CreateUserDto'
+        - type: object
+          properties:
+            twoFactorEnabled: { type: boolean }
+
+    CreateSuperAdminDto:
+      type: object
+      required: [email, password, role]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+        role:
+          type: string
+          enum: [SUPER_ADMIN]
+        status:
+          type: string
+          enum: [ACTIVE]
+          default: ACTIVE
+
+    UserResponse:
+      type: object
+      properties:
+        id: { type: string }
+        email: { type: string }
+        role: { $ref: '#/components/schemas/UserRole' }
+        status: { $ref: '#/components/schemas/UserStatus' }
+        tenantId: { type: string, nullable: true }
+        branchId: { type: string, nullable: true }
+        firstName: { type: string }
+        lastName: { type: string }
+        phone: { type: string, nullable: true }
+        gender: { $ref: '#/components/schemas/Gender', nullable: true }
+        maritalStatus: { $ref: '#/components/schemas/MaritalStatus', nullable: true }
+        dateOfBirth: { type: string, format: date, nullable: true }
+        address: { type: string, nullable: true }
+        city: { type: string, nullable: true }
+        state: { type: string, nullable: true }
+        country: { type: string, nullable: true }
+        postalCode: { type: string, nullable: true }
+        profession: { type: string, nullable: true }
+        baptismDate: { type: string, format: date, nullable: true }
+        preferredLanguage: { type: string, default: en }
+        profilePhoto: { type: string, format: uri, nullable: true }
+        biometricId: { type: string, nullable: true }
+        privacySettings:
+          type: object
+          additionalProperties: true
+          nullable: true
+        notificationSettings:
+          type: object
+          additionalProperties: true
+          nullable: true
+        cellId: { type: string, nullable: true }
+        ministryId: { type: string, nullable: true }
+        departmentId: { type: string, nullable: true }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }

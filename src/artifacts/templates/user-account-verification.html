@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="x-apple-disable-message-reformatting" />
+  <title>Verify your admin account</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" />
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      width: 100% !important;
+      background-color: #f5f8fb;
+      font-family: 'Inter', sans-serif;
+      -webkit-text-size-adjust: 100%;
+      -ms-text-size-adjust: 100%;
+    }
+    a {
+      text-decoration: none;
+      color: #3b82f6;
+    }
+    .email-container {
+      max-width: 600px;
+      margin: 20px auto;
+      background: #ffffff;
+      border-radius: 10px;
+      box-shadow: 0 3px 10px rgba(0, 0, 0, 0.04);
+      border: 1px solid #e5e7eb;
+      overflow: hidden;
+    }
+    .header {
+      background: #f1f5f9;
+      padding: 24px;
+      text-align: center;
+    }
+    .header img {
+      max-width: 100px;
+      margin-bottom: 10px;
+    }
+    .header h1 {
+      font-size: 18px;
+      color: #010822;
+      margin: 0;
+      font-weight: 600;
+    }
+    .header h1 a {
+      color: #003066;
+      text-decoration: none;
+    }
+    .content {
+      padding: 32px 24px;
+      text-align: center;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    .content h2 {
+      margin: 0 0 8px;
+      font-size: 16px;
+      color: #111827;
+    }
+    .content h3 {
+      margin: 0 0 16px;
+      font-size: 15px;
+      font-weight: 600;
+      color: #1e293b;
+    }
+    .content p {
+      margin: 0 0 20px;
+      color: #4b5563;
+    }
+    .btn {
+      display: inline-block;
+      padding: 8px 24px;
+      background: linear-gradient(135deg, #b3cbf1 0%, #6089e4 100%);
+      color: #fff !important;
+      font-size: 13px;
+      font-weight: 600;
+      border-radius: 6px;
+      text-decoration: none;
+    }
+    .btn:hover {
+      background: #2563eb;
+    }
+    .footer {
+      background: #f1f5f9;
+      padding: 16px;
+      text-align: center;
+      font-size: 12px;
+      color: #6b7280;
+    }
+    .footer a {
+      color: #3b82f6;
+      font-weight: 500;
+    }
+    .footer p {
+      margin: 6px 0;
+    }
+    .footer small {
+      display: block;
+      color: #9ca3af;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="email-container">
+    <div class="header">
+      <img src="https://res.cloudinary.com/dhcshtjwk/image/upload/v1750249442/app-logo_q2rizh.png" alt="app Logo" />
+      <h1>Welcome to <a href="{{SERVICE_LINK}}">app</a></h1>
+    </div>
+
+    <div class="content">
+      <h2>Hello {{FIRST_NAME}} {{LAST_NAME}},</h2>
+      <h3>Verify your email address</h3>
+      <p>You’re almost ready to start using your app organization account. Confirm your email by clicking below:</p>
+      <a href="{{CONFIRMATION_LINK}}" class="btn">Verify Email</a>
+    </div>
+
+    <div class="footer">
+      <p>If you didn’t create this account, you can safely <a href="#">ignore</a> this email.</p>
+      <p>
+        <a href="{{SERVICE_LINK}}/about">About Us</a> |
+        <a href="{{SERVICE_LINK}}/contact">Contact</a> |
+        <a href="{{SERVICE_LINK}}/privacy-policy">Privacy</a>
+      </p>
+      <p>Need help? Email us at <a href="mailto:{{SUPPORT_MAIL}}">{{SUPPORT_MAIL}}</a></p>
+      <p>&copy; {{CURRENT_YEAR}} app Inc. All rights reserved.</p>
+      <small>This is an automated message. Please do not reply.</small>
+    </div>
+  </div>
+</body>
+</html>

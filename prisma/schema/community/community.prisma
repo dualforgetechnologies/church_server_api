@@ -1,0 +1,50 @@
+model Community {
+  id              String          @id @default(cuid())
+  tenantId        String
+  branchId        String
+  name            String
+  type            CommunityType
+  description     String?
+  leaderId        String?
+  meetingSchedule Json?
+  location        String?
+  status          CommunityStatus @default(ACTIVE)
+
+  maxMembers       Int?
+  isOpen           Boolean @default(true)
+  requiresApproval Boolean @default(false)
+
+  createdBy String?
+  updatedBy String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  branch Branch @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  leader User?  @relation(fields: [leaderId], references: [id])
+
+  cellMembers     Member[] @relation("CellMembers")
+  ministryMembers Member[] @relation("MinistryMembers")
+
+  @@index([tenantId])
+  @@index([branchId])
+  @@index([type])
+  @@index([status])
+  @@map("communities")
+}
+
+enum CommunityType {
+  CELL
+  MINISTRY
+  FELLOWSHIP
+  SUPPORT_GROUP
+  BIBLE_STUDY
+  PRAYER_GROUP
+}
+
+enum CommunityStatus {
+  ACTIVE
+  INACTIVE
+  MERGED
+  DISBANDED
+}

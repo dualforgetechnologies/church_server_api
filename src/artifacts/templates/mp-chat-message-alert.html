@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="x-apple-disable-message-reformatting" />
+  <title>You have a new message</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" />
+  <style>
+    html, body {
+      margin: 0 !important;
+      padding: 0 !important;
+      width: 100% !important;
+      background-color: #f5f8fb;
+      font-family: 'Inter', sans-serif;
+    }
+    * {
+      -ms-text-size-adjust: 100%;
+      -webkit-text-size-adjust: 100%;
+    }
+    a {
+      text-decoration: none;
+      color: #3b82f6;
+    }
+    .email-container {
+      max-width: 600px;
+      margin: 20px auto;
+      background: #ffffff;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    }
+    .header {
+      background-color: #f1f5f9;
+      padding: 20px;
+      text-align: center;
+    }
+    .header img {
+      max-width: 100px;
+      margin-bottom: 8px;
+    }
+    .header h3 {
+      font-size: 14px;
+      font-weight: 600;
+      color: #010822;
+      margin: 0;
+    }
+    .content {
+      padding: 24px 20px;
+      text-align: center;
+      font-size: 14px;
+      color: #4b5563;
+    }
+    .content h4 {
+      margin: 0 0 12px;
+      font-size: 14px;
+      color: #111827;
+      font-weight: 600;
+    }
+    .content p {
+      margin-bottom: 20px;
+      line-height: 1.5;
+    }
+    .message-preview {
+      margin: 16px auto;
+      padding: 12px 16px;
+      background-color: #f9fafb;
+      border-left: 3px solid #3b82f6;
+      font-size: 13px;
+      color: #374151;
+      border-radius: 4px;
+      text-align: left;
+    }
+    .btn {
+      display: inline-block;
+      padding: 8px 24px;
+      background: linear-gradient(135deg, #b3cbf1 0%, #6089e4 100%);
+      color: #ffffff !important;
+      font-size: 13px;
+      font-weight: 600;
+      border-radius: 6px;
+      text-decoration: none;
+      box-shadow: 0 4px 10px rgba(37, 99, 235, 0.2);
+    }
+    .btn:hover {
+      background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+      box-shadow: 0 6px 14px rgba(37, 99, 235, 0.3);
+      transform: translateY(-1px);
+    }
+    .footer {
+      background-color: #f1f5f9;
+      padding: 16px;
+      text-align: center;
+      font-size: 12px;
+      color: #6b7280;
+      line-height: 1.5;
+    }
+    .footer a {
+      color: #3b82f6;
+      font-weight: 500;
+    }
+    .footer p {
+      margin: 6px 0;
+    }
+    .footer p:last-child {
+      color: #9ca3af;
+      font-size: 11px;
+    }
+  </style>
+</head>
+<body>
+  <div class="email-container">
+    <div class="header">
+      <img src="https://res.cloudinary.com/dhcshtjwk/image/upload/v1750249442/app-logo_q2rizh.png" alt="app Logo" />
+      <h3>New Message Notification</h3>
+    </div>
+
+    <div class="content">
+        <h4>Hello {{FIRST_NAME}} {{LAST_NAME}},</h4>
+        <p>You have a new message from <strong>{{SENDER_NAME}}</strong> ({{SENDER_ROLE}}) while you were offline.</p>
+        
+        <div class="message-preview">
+          "{{MESSAGE_SNIPPET}}"
+        </div>
+      
+        <p>Click below to read and reply:</p>
+        <a href="{{MESSAGE_CONVERSATION_LINK}}" class="btn">View Message</a>
+      </div>
+      
+
+    <div class="footer">
+      <p>If you didn’t expect this notification, you can safely <a href="#">ignore</a> this email.</p>
+      <p>
+        <a href="{{SERVICE_LINK}}/about">About Us</a> |
+        <a href="{{SERVICE_LINK}}/contact">Contact</a> |
+        <a href="{{SERVICE_LINK}}/privacy-policy">Privacy Policy</a>
+      </p>
+      <p>Need help? Contact us at <a href="mailto:{{SUPPORT_MAIL}}">{{SUPPORT_MAIL}}</a></p>
+      <p>&copy; {{CURRENT_YEAR}} app Inc. All rights reserved.</p>
+      <p>This is an automated message. Please do not reply directly to this email.</p>
+    </div>
+  </div>
+</body>
+</html>

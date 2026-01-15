@@ -1,0 +1,48 @@
+{
+  "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+  "organizeImports": { "enabled": true },
+  "formatter": {
+    "enabled": true,
+    "formatWithErrors": false,
+    "indentStyle": "space",
+    "indentWidth": 4,
+    "lineEnding": "lf",
+    "lineWidth": 120,
+    "attributePosition": "auto"
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "recommended": true,
+      "style": {
+        "useBlockStatements": "error",
+        "useImportType": "off",
+        "noUselessElse": "off",
+        "useTemplate": "warn",
+        "noNonNullAssertion": "off"
+      },
+      "complexity": {
+        "recommended": true,
+        "noForEach": "warn"
+      },
+      "correctness": {
+        "noUnusedImports": "warn"
+      }
+    },
+    "ignore": ["venv/"]
+  },
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "single"
+    }
+  },
+  "json": {
+    "formatter": {
+      "indentWidth": 2
+    }
+  },
+  "files": {
+    "include": ["src/**/*"],
+    "ignore": ["node_modules/", "dist/", "package-lock.json", "tsconfig.json"]
+  }
+}

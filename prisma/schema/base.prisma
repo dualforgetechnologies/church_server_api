@@ -1,0 +1,16 @@
+// ================================
+// APP SaaS Database Schema (Prisma)
+// Author: Benjamin Kettey-Tagoe
+// Date: 2025-06-07
+// Description: Full optimized SaaS schema for CRM, HRM, ERP, Legal, Maintenance, Media & E-commerce
+// Modified to follow app_SRS
+// ================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}

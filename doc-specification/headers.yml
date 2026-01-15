@@ -1,0 +1,22 @@
+openapi: 3.0.3
+
+info:
+  title: Church API
+  version: 1.0.0
+
+security:
+  - bearerAuth: []
+  - auth0IdToken: []
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token for accessing protected endpoints
+
+    auth0IdToken:
+      type: apiKey
+      in: header
+      name: x-auth0-id-token
+      description: Auth0 ID token used for authentication

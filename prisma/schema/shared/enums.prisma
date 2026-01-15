@@ -1,0 +1,13 @@
+enum SenderType {
+  SELLER
+  BUYER
+  ADMIN
+}
+
+enum RecordStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+  PENDING
+  ARCHIVED
+}

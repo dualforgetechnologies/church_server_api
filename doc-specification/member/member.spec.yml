@@ -1,0 +1,265 @@
+paths:
+  /api/v1/members:
+    get:
+      tags: [Members]
+      summary: List members with optional filters, pagination, and sorting
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: branchId
+          in: query
+          schema: { type: string }
+        - name: departmentId
+          in: query
+          schema: { type: string }
+        - name: memberType
+          in: query
+          schema: { $ref: '#/components/schemas/MemberType' }
+        - name: memberStatus
+          in: query
+          schema: { $ref: '#/components/schemas/MemberStatus' }
+        - name: gender
+          in: query
+          schema: { $ref: '#/components/schemas/Gender' }
+        - name: page
+          in: query
+          schema: { type: integer, default: 1 }
+        - name: limit
+          in: query
+          schema: { type: integer, default: 20 }
+        - name: sortBy
+          in: query
+          schema: { type: string, default: createdAt }
+      responses:
+        '200':
+          description: List of members
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/MemberResponse'
+                  pagination:
+                    $ref: '#/components/schemas/PaginatedMetaData'
+        '401': { description: Unauthorized }
+
+  /api/v1/members/{id}:
+    get:
+      tags: [Members]
+      summary: Get member by ID (optionally filtered by branch)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+        - name: branchId
+          in: query
+          schema: { type: string }
+      responses:
+        '200':
+          description: Member retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MemberResponse'
+        '401': { description: Unauthorized }
+        '404': { description: Member not found }
+
+    put:
+      tags: [Members]
+      summary: Update member details
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateMemberDto'
+      responses:
+        '200':
+          description: Member updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MemberResponse'
+        '400': { description: Validation error }
+        '401': { description: Unauthorized }
+        '404': { description: Member not found }
+
+components:
+  schemas:
+    Gender:
+      type: string
+      enum: [MALE, FEMALE, OTHER]
+
+    MaritalStatus:
+      type: string
+      enum: [SINGLE, MARRIED, DIVORCED, WIDOWED]
+
+    MemberType:
+      type: string
+      enum: [MEMBER, GUEST, LEADER, CHILD, YOUTH]
+
+    MemberStatus:
+      type: string
+      enum: [ACTIVE, INACTIVE, SUSPENDED, PENDING]
+
+    baseMemberFields:
+      type: object
+      required: [userId, memberNumber, firstName, lastName, email]
+      properties:
+        branchId: { type: string, nullable: true }
+        userId: { type: string }
+        memberNumber: { type: string }
+        firstName: { type: string }
+        lastName: { type: string }
+        email: { type: string, format: email }
+        phone: { type: string, nullable: true }
+
+    CreateMemberDto:
+      allOf:
+        - $ref: '#/components/schemas/baseMemberFields'
+        - type: object
+          properties:
+            dateOfBirth: { type: string, format: date, nullable: true }
+            gender: { $ref: '#/components/schemas/Gender', nullable: true }
+            address: { type: string, nullable: true }
+            city: { type: string, nullable: true }
+            state: { type: string, nullable: true }
+            country: { type: string, nullable: true }
+            postalCode: { type: string, nullable: true }
+            profession: { type: string, nullable: true }
+            maritalStatus: { $ref: '#/components/schemas/MaritalStatus', nullable: true }
+            baptismDate: { type: string, format: date, nullable: true }
+            joinDate: { type: string, format: date, nullable: true }
+            memberType: { $ref: '#/components/schemas/MemberType', default: MEMBER }
+            memberStatus: { $ref: '#/components/schemas/MemberStatus', default: ACTIVE }
+            preferredLanguage: { type: string, default: en }
+            profilePhoto: { type: string, format: uri, nullable: true }
+            biometricId: { type: string, nullable: true }
+            privacySettings: { type: object, nullable: true }
+            notificationSettings: { type: object, nullable: true }
+            cellId: { type: string, nullable: true }
+            ministryId: { type: string, nullable: true }
+            departmentId: { type: string, nullable: true }
+
+    CreateGuestMemberDto:
+      allOf:
+        - $ref: '#/components/schemas/baseMemberFields'
+        - type: object
+          properties:
+            memberType: { type: string, enum: [GUEST] }
+            memberStatus: { type: string, enum: [ACTIVE] }
+            joinDate: { type: string, format: date, nullable: true }
+
+    UpdateMemberDto:
+      type: object
+      properties:
+        firstName: { type: string }
+        lastName: { type: string }
+        branchId: { type: string, nullable: true }
+        email: { type: string, format: email }
+        phone: { type: string }
+        dateOfBirth: { type: string, format: date }
+        gender: { $ref: '#/components/schemas/Gender' }
+        address: { type: string }
+        city: { type: string }
+        state: { type: string }
+        country: { type: string }
+        postalCode: { type: string }
+        profession: { type: string }
+        maritalStatus: { $ref: '#/components/schemas/MaritalStatus' }
+        memberType: { $ref: '#/components/schemas/MemberType' }
+        memberStatus: { $ref: '#/components/schemas/MemberStatus' }
+        cellId: { type: string }
+        ministryId: { type: string }
+        departmentId: { type: string }
+        biometricId: { type: string }
+        baptismDate: { type: string, format: date }
+        preferredLanguage: { type: string }
+        profilePhoto: { type: string, format: uri }
+        privacySettings: { type: object }
+        notificationSettings: { type: object }
+
+    MemberListQueryDto:
+      allOf:
+        - $ref: '#/components/schemas/commonPaginationQueryDto'
+        - type: object
+          properties:
+            branchId: { type: string, nullable: true }
+            departmentId: { type: string, nullable: true }
+            memberType: { $ref: '#/components/schemas/MemberType' }
+            memberStatus: { $ref: '#/components/schemas/MemberStatus' }
+            gender: { $ref: '#/components/schemas/Gender' }
+            sortBy: { type: string }
+
+    MemberResponse:
+      type: object
+      properties:
+        id: { type: string }
+        branchId: { type: string, nullable: true }
+        userId: { type: string }
+        memberNumber: { type: string }
+        firstName: { type: string }
+        lastName: { type: string }
+        email: { type: string }
+        phone: { type: string, nullable: true }
+        dateOfBirth: { type: string, format: date, nullable: true }
+        gender: { $ref: '#/components/schemas/Gender', nullable: true }
+        address: { type: string, nullable: true }
+        city: { type: string, nullable: true }
+        state: { type: string, nullable: true }
+        country: { type: string, nullable: true }
+        postalCode: { type: string, nullable: true }
+        profession: { type: string, nullable: true }
+        maritalStatus: { $ref: '#/components/schemas/MaritalStatus', nullable: true }
+        baptismDate: { type: string, format: date, nullable: true }
+        joinDate: { type: string, format: date, nullable: true }
+        memberType: { $ref: '#/components/schemas/MemberType' }
+        memberStatus: { $ref: '#/components/schemas/MemberStatus' }
+        preferredLanguage: { type: string }
+        profilePhoto: { type: string, format: uri, nullable: true }
+        biometricId: { type: string, nullable: true }
+        privacySettings: { type: object, nullable: true }
+        notificationSettings: { type: object, nullable: true }
+        cellId: { type: string, nullable: true }
+        ministryId: { type: string, nullable: true }
+        departmentId: { type: string, nullable: true }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    PaginatedMetaData:
+      type: object
+      properties:
+        page: { type: integer, example: 1 }
+        limit: { type: integer, example: 20 }
+        total: { type: integer, example: 120 }
+        totalPages: { type: integer, example: 6 }
+
+    AppResponse:
+      type: object
+      required: [message, code, success]
+      properties:
+        message: { type: string, example: Operation successful }
+        code: { type: integer, example: 200 }
+        success: { type: boolean, example: true }
+        data: { nullable: true }
+        pagination: { $ref: '#/components/schemas/PaginatedMetaData', nullable: true }
+        environment: { type: string, example: production }
+
+    ErrorResponse:
+      allOf:
+        - $ref: '#/components/schemas/AppResponse'
+        - type: object
+          properties:
+            success: { example: false }
+            data: { nullable: true }

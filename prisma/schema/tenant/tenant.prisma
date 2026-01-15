@@ -1,0 +1,83 @@
+model Tenant {
+  id                    String           @id @default(cuid())
+  name                  String           @unique
+  slug                  String           @unique
+  logo                  String?
+  description           String?
+  email                 String           @unique
+  phone                 String?
+  address               String?
+  city                  String?
+  state                 String?
+  currencyId            String?
+  currency              Currency?        @relation(fields: [currencyId], references: [id], onDelete: Cascade)
+  defaultCurrency       String           @default("USD")
+  country               String?          @default("US")
+  timezone              String           @default("UTC")
+  language              String           @default("en")
+  status                TenantStatus     @default(ACTIVE)
+  subscriptionTier      SubscriptionTier @default(BASIC)
+  subscriptionExpiresAt DateTime?
+  isBranchEnabled       Boolean          @default(true)
+
+  isDeleted   Boolean   @default(false)
+  deletedById String?
+  deletedAt   DateTime?
+
+  // Audit
+  createdBy String?
+  updatedBy String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  branches   Branch[]
+  members    Member[]
+  roles      Role[]
+  users      User[]
+  settings   TenantSetting[]
+  auditLogs  AuditLog[]
+  Community  Community[]
+  Department Department[]
+
+  @@index([slug])
+  @@index([status])
+  @@index([subscriptionTier])
+  @@map("tenants")
+}
+
+enum TenantStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+  PENDING
+  TRIAL
+}
+
+enum SubscriptionTier {
+  FREE
+  BASIC
+  PRO
+  PREMIUM
+  ENTERPRISE
+}
+
+model TenantSetting {
+  id          String   @id @default(cuid())
+  tenantId    String
+  key         String
+  value       Json
+  category    String
+  description String?
+  isPublic    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, key])
+  @@index([tenantId])
+  @@index([category])
+  @@map("tenant_settings")
+}

@@ -1,0 +1,392 @@
+paths:
+  /api/v1/branches:
+    post:
+      tags: [Branches]
+      summary: Create a new branch
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateBranchDto'
+      responses:
+        '201':
+          description: Branch created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BranchResponse'
+        '400': { description: Validation error }
+        '401': { description: Unauthorized }
+        '409': { description: Branch with code/slug already exists }
+
+    get:
+      tags: [Branches]
+      summary: List branches with optional filters, pagination, and sorting
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema: { type: integer, default: 1 }
+        - name: limit
+          in: query
+          schema: { type: integer, default: 20 }
+        - name: status
+          in: query
+          schema: { $ref: '#/components/schemas/BranchStatus' }
+        - name: type
+          in: query
+          schema: { $ref: '#/components/schemas/BranchType' }
+        - name: parentBranchId
+          in: query
+          schema: { type: string }
+        - name: sortBy
+          in: query
+          schema: { type: string, default: createdAt }
+      responses:
+        '200':
+          description: List of branches
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/BranchResponse'
+                  pagination:
+                    $ref: '#/components/schemas/PaginatedMetaData'
+        '401': { description: Unauthorized }
+
+  /api/v1/branches/primary:
+    post:
+      tags: [Branches]
+      summary: Create a primary branch
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePrimaryBranchDto'
+      responses:
+        '201':
+          description: Primary branch created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BranchResponse'
+
+  /api/v1/branches/child:
+    post:
+      tags: [Branches]
+      summary: Create a child branch
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateChildBranchDto'
+      responses:
+        '201':
+          description: Child branch created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BranchResponse'
+
+  /api/v1/branches/{id}:
+    put:
+      tags: [Branches]
+      summary: Update branch details
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateBranchDto'
+      responses:
+        '200':
+          description: Branch updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BranchResponse'
+        '400': { description: Validation error }
+        '401': { description: Unauthorized }
+        '404': { description: Branch not found }
+
+  /api/v1/branches/{id}/hierarchy:
+    put:
+      tags: [Branches]
+      summary: Update branch hierarchy
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateBranchHierarchyDto'
+      responses:
+        '200':
+          description: Branch hierarchy updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BranchResponse'
+
+  /api/v1/branches/{id}/status:
+    put:
+      tags: [Branches]
+      summary: Update branch status
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateBranchStatusDto'
+      responses:
+        '200': { description: Branch status updated successfully }
+
+  /api/v1/branches/{id}/close:
+    post:
+      tags: [Branches]
+      summary: Close a branch
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CloseBranchDto'
+      responses:
+        '200': { description: Branch closed successfully }
+
+  /api/v1/branches/user/assign:
+    post:
+      tags: [Branches]
+      summary: Assign user to branch
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AssignUserToBranchDto'
+      responses:
+        '200': { description: User assigned successfully }
+
+  /api/v1/branches/{branchId}/user/remove:
+    post:
+      tags: [Branches]
+      summary: Remove user from branch
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: branchId
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RemoveUserFromBranchDto'
+      responses:
+        '200': { description: User removed successfully }
+
+components:
+  schemas:
+    BranchType:
+      type: string
+      enum: [MAIN, BRANCH, SATELLITE, CAMPUS, PLANT]
+
+    BranchStatus:
+      type: string
+      enum: [ACTIVE, INACTIVE, CLOSED, MERGED, PLANNING]
+
+    AssignmentStatus:
+      type: string
+      enum: [ACTIVE, INACTIVE, PENDING, SUSPENDED]
+
+    baseBranchFields:
+      type: object
+      required: [name, code, slug]
+      properties:
+        name: { type: string }
+        code: { type: string }
+        slug: { type: string }
+        description: { type: string, nullable: true }
+        type: { $ref: '#/components/schemas/BranchType', default: BRANCH }
+        email: { type: string, nullable: true }
+        phone: { type: string, nullable: true }
+        address: { type: string, nullable: true }
+        city: { type: string, nullable: true }
+        state: { type: string, nullable: true }
+        country: { type: string, nullable: true }
+        timezone: { type: string, nullable: true }
+
+    CreateBranchDto:
+      allOf:
+        - $ref: '#/components/schemas/baseBranchFields'
+        - type: object
+          properties:
+            parentBranchId: { type: string, nullable: true }
+            pastorId: { type: string, nullable: true }
+            isPrimary: { type: boolean, default: false }
+            status: { $ref: '#/components/schemas/BranchStatus', default: ACTIVE }
+            maxCapacity: { type: integer, nullable: true }
+            seatingCapacity: { type: integer, nullable: true }
+            parkingCapacity: { type: integer, nullable: true }
+
+    CreatePrimaryBranchDto:
+      allOf:
+        - $ref: '#/components/schemas/baseBranchFields'
+        - type: object
+          properties:
+            parentBranchId: { type: string, nullable: true }
+            type: { type: string, enum: [MAIN] }
+            isPrimary: { type: boolean, enum: [true] }
+            status: { type: string, enum: [ACTIVE] }
+
+    CreateChildBranchDto:
+      allOf:
+        - $ref: '#/components/schemas/baseBranchFields'
+        - type: object
+          properties:
+            parentBranchId: { type: string }
+            type: { $ref: '#/components/schemas/BranchType', default: BRANCH }
+
+    UpdateBranchDto:
+      type: object
+      properties:
+        name: { type: string }
+        slug: { type: string }
+        code: { type: string }
+        description: { type: string }
+        parentBranchId: { type: string, nullable: true }
+        email: { type: string }
+        phone: { type: string }
+        address: { type: string }
+        city: { type: string }
+        state: { type: string }
+        country: { type: string }
+        timezone: { type: string }
+        pastorId: { type: string }
+        isPrimary: { type: boolean }
+        maxCapacity: { type: integer }
+        seatingCapacity: { type: integer }
+        parkingCapacity: { type: integer }
+
+    UpdateBranchHierarchyDto:
+      type: object
+      properties:
+        parentBranchId: { type: string, nullable: true }
+        type: { $ref: '#/components/schemas/BranchType' }
+
+    UpdateBranchStatusDto:
+      type: object
+      required: [status]
+      properties:
+        status: { $ref: '#/components/schemas/BranchStatus' }
+
+    CloseBranchDto:
+      type: object
+      required: [status, reason]
+      properties:
+        status: { type: string, enum: [CLOSED] }
+        reason: { type: string }
+
+    AssignUserToBranchDto:
+      type: object
+      required: [userId, branchId]
+      properties:
+        userId: { type: string }
+        branchId: { type: string }
+        isPrimary: { type: boolean, default: false }
+
+    RemoveUserFromBranchDto:
+      type: object
+      required: [userId]
+      properties:
+        userId: { type: string }
+
+    BranchResponse:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string }
+        code: { type: string }
+        slug: { type: string }
+        description: { type: string, nullable: true }
+        parentBranchId: { type: string, nullable: true }
+        type: { $ref: '#/components/schemas/BranchType' }
+        status: { $ref: '#/components/schemas/BranchStatus' }
+        isPrimary: { type: boolean }
+        email: { type: string, nullable: true }
+        phone: { type: string, nullable: true }
+        address: { type: string, nullable: true }
+        city: { type: string, nullable: true }
+        state: { type: string, nullable: true }
+        country: { type: string, nullable: true }
+        timezone: { type: string, nullable: true }
+        pastorId: { type: string, nullable: true }
+        maxCapacity: { type: integer, nullable: true }
+        seatingCapacity: { type: integer, nullable: true }
+        parkingCapacity: { type: integer, nullable: true }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    PaginatedMetaData:
+      type: object
+      properties:
+        page: { type: integer, example: 1 }
+        limit: { type: integer, example: 20 }
+        total: { type: integer, example: 120 }
+        totalPages: { type: integer, example: 6 }
+
+    AppResponse:
+      type: object
+      required: [message, code, success]
+      properties:
+        message: { type: string, example: Operation successful }
+        code: { type: integer, example: 200 }
+        success: { type: boolean, example: true }
+        data: { nullable: true }
+        pagination: { $ref: '#/components/schemas/PaginatedMetaData', nullable: true }
+        environment: { type: string, example: production }
+
+    ErrorResponse:
+      allOf:
+        - $ref: '#/components/schemas/AppResponse'
+        - type: object
+          properties:
+            success: { example: false }
+            data: { nullable: true }

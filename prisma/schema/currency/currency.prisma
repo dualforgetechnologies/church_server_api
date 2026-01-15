@@ -1,0 +1,34 @@
+model Currency {
+  id          String    @id @default(cuid())
+  code        String    @unique // ISO code: "USD", "EUR", "GHS"
+  name        String // Full name: "US Dollar", "Euro"
+  symbol      String? // Symbol: "$", "€", "₵"
+  disabled    Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  isDeleted   Boolean   @default(false)
+  deletedById String?
+  deletedAt   DateTime?
+
+  // Relations
+  conversionsFrom CurrencyConversion[] @relation("FromCurrency")
+  conversionsTo   CurrencyConversion[] @relation("ToCurrency")
+
+  Tenant Tenant[]
+}
+
+model CurrencyConversion {
+  id             String   @id @default(cuid())
+  fromCurrencyId String
+  toCurrencyId   String
+  rate           Decimal  @db.Decimal(18, 8)
+  provider       String?
+  fetchedAt      DateTime @default(now())
+  disabled       Boolean  @default(false)
+
+  fromCurrency Currency @relation("FromCurrency", fields: [fromCurrencyId], references: [id])
+  toCurrency   Currency @relation("ToCurrency", fields: [toCurrencyId], references: [id])
+
+  @@unique([fromCurrencyId, toCurrencyId])
+  @@index([fromCurrencyId, toCurrencyId])
+}

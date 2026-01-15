@@ -1,0 +1,98 @@
+model Department {
+  id                 String           @id @default(cuid())
+  tenantId           String
+  branchId           String?
+  parentDepartmentId String? // For hierarchical departments
+  name               String
+  code               String
+  description        String?
+  type               DepartmentType
+  headId             String? // Department head
+  status             DepartmentStatus @default(ACTIVE)
+
+  // Settings
+  maxMembers       Int?
+  requiresTraining Boolean @default(false)
+
+  // Audit
+  createdBy String?
+  updatedBy String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  isDeleted   Boolean   @default(false)
+  deletedById String?
+  deletedAt   DateTime?
+
+  // Relations
+  tenant   Tenant                     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  branch   Branch?                    @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  parent   Department?                @relation("DepartmentHierarchy", fields: [parentDepartmentId], references: [id])
+  children Department[]               @relation("DepartmentHierarchy")
+  head     User?                      @relation(fields: [headId], references: [id])
+  members  Member[]
+  users    UserDepartmentAssignment[]
+
+  @@unique([tenantId, branchId, code])
+  @@index([tenantId])
+  @@index([branchId])
+  @@index([status])
+  @@map("departments")
+}
+
+enum DepartmentType {
+  MINISTRY
+  SERVICE
+  ADMINISTRATIVE
+  CREATIVE
+  PASTORAL
+  OUTREACH
+  YOUTH
+  CHILDREN
+  MUSIC
+  MEDIA
+  FACILITIES
+  FINANCE
+}
+
+enum DepartmentStatus {
+  ACTIVE
+  INACTIVE
+  ARCHIVED
+}
+
+model UserDepartmentAssignment {
+  id           String           @id @default(cuid())
+  userId       String
+  departmentId String
+  role         DepartmentRole   @default(MEMBER)
+  assignedBy   String
+  assignedAt   DateTime         @default(now())
+  status       AssignmentStatus @default(ACTIVE)
+
+  // Relations
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  department Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, departmentId])
+  @@index([userId])
+  @@index([departmentId])
+  @@index([status])
+  @@map("user_department_assignments")
+}
+
+enum DepartmentRole {
+  HEAD
+  ASSISTANT_HEAD
+  LEADER
+  MEMBER
+  VOLUNTEER
+  TRAINEE
+}
+
+enum AssignmentStatus {
+  ACTIVE
+  INACTIVE
+  PENDING
+  SUSPENDED
+}

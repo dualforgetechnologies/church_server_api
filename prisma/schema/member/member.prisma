@@ -1,0 +1,96 @@
+model Member {
+  id           String  @id @default(cuid())
+  tenantId     String
+  branchId     String?
+  userId       String  @unique
+  memberNumber String  @unique
+
+  firstName String
+  lastName  String
+  email     String
+  phone     String? @unique
+
+  dateOfBirth DateTime?
+  gender      Gender?
+  address     String?
+  city        String?
+  state       String?
+  country     String?
+  postalCode  String?
+
+  profession    String?
+  maritalStatus MaritalStatus?
+  baptismDate   DateTime?
+  joinDate      DateTime       @default(now())
+  memberType    MemberType     @default(MEMBER)
+  memberStatus  MemberStatus   @default(ACTIVE)
+
+  preferredLanguage    String  @default("en")
+  profilePhoto         String?
+  biometricId          String? @unique
+  privacySettings      Json    @default("{}")
+  notificationSettings Json    @default("{}")
+
+  // Community relations (NO communityId field)
+  cellId     String?
+  ministryId String?
+
+  cell     Community? @relation("CellMembers", fields: [cellId], references: [id])
+  ministry Community? @relation("MinistryMembers", fields: [ministryId], references: [id])
+
+  createdBy   String?
+  updatedBy   String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  isDeleted   Boolean   @default(false)
+  deletedById String?
+  deletedAt   DateTime?
+
+  tenant       Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  branch       Branch?     @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  Department   Department? @relation(fields: [departmentId], references: [id])
+  departmentId String?
+
+  @@unique([tenantId, memberNumber])
+  @@index([tenantId])
+  @@index([branchId])
+  @@index([memberType])
+  @@index([memberStatus])
+  @@map("members")
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+  PREFER_NOT_TO_SAY
+}
+
+enum MaritalStatus {
+  SINGLE
+  MARRIED
+  DIVORCED
+  WIDOWED
+  SEPARATED
+}
+
+enum MemberType {
+  NEW_CONVERT
+  MEMBER
+  WORKER
+  LEADER
+  PASTOR
+  BISHOP
+  SENIOR_BISHOP
+  ARCHBISHOP
+  GUEST
+}
+
+enum MemberStatus {
+  ACTIVE
+  INACTIVE
+  TRANSFERRED
+  DECEASED
+  SUSPENDED
+}

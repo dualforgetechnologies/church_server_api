@@ -1,0 +1,276 @@
+paths:
+  /api/v1/auth/login:
+    post:
+      tags: [Authentication]
+      summary: User login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginDto'
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          description: Validation error
+        '401':
+          description: Unauthorized
+
+  /api/v1/auth/refresh-token:
+    post:
+      tags: [Authentication]
+      summary: Refresh access token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshTokenDto'
+      responses:
+        '200':
+          description: Token refreshed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          description: Validation error
+        '401':
+          description: Unauthorized
+
+  /api/v1/auth/logout:
+    post:
+      tags: [Authentication]
+      summary: Logout user
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Logout successful
+        '401':
+          description: Unauthorized
+
+  /api/v1/auth/forgot-password:
+    post:
+      tags: [Authentication]
+      summary: Request password reset
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ForgotPasswordDto'
+      responses:
+        '200':
+          description: Password reset email sent
+        '400':
+          description: Validation error
+
+  /api/v1/auth/reset-password:
+    post:
+      tags: [Authentication]
+      summary: Reset password using token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResetPasswordDto'
+      responses:
+        '200':
+          description: Password reset successful
+        '400':
+          description: Validation error
+
+  /api/v1/auth/change-password:
+    post:
+      tags: [Authentication]
+      summary: Change password for authenticated user
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChangePasswordDto'
+      responses:
+        '200':
+          description: Password changed successfully
+        '400':
+          description: Validation error
+        '401':
+          description: Unauthorized
+
+  /api/v1/auth/social-login:
+    post:
+      tags: [Authentication]
+      summary: Login via social provider
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                provider:
+                  type: string
+                token:
+                  type: string
+              required:
+                - provider
+                - token
+      responses:
+        '200':
+          description: Social login successful
+        '401':
+          description: Unauthorized
+
+  /api/v1/auth/verify-account:
+    post:
+      tags: [Authentication]
+      summary: Verify user account via token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VerifyAccountDto'
+      responses:
+        '200':
+          description: Account verified successfully
+        '400':
+          description: Validation error
+        '401':
+          description: Unauthorized
+
+  /api/v1/auth/me:
+    get:
+      tags: [Authentication]
+      summary: Get current authenticated user profile
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: User profile retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfileResponse'
+        '401':
+          description: Unauthorized
+
+components:
+  schemas:
+    LoginDto:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+        mfaCode:
+          type: string
+          nullable: true
+
+    RefreshTokenDto:
+      type: object
+      required:
+        - refreshToken
+      properties:
+        refreshToken:
+          type: string
+
+    ForgotPasswordDto:
+      type: object
+      required:
+        - email
+      properties:
+        email:
+          type: string
+          format: email
+
+    ResetPasswordDto:
+      type: object
+      required:
+        - newPassword
+        - confirmPassword
+        - token
+      properties:
+        newPassword:
+          type: string
+        confirmPassword:
+          type: string
+        token:
+          type: string
+
+    ChangePasswordDto:
+      type: object
+      required:
+        - oldPassword
+        - newPassword
+      properties:
+        oldPassword:
+          type: string
+        newPassword:
+          type: string
+
+    VerifyAccountDto:
+      type: object
+      required:
+        - token
+      properties:
+        token:
+          type: string
+
+    AuthResponse:
+      type: object
+      properties:
+        accessToken:
+          type: string
+        refreshToken:
+          type: string
+        expiresIn:
+          type: integer
+
+    UserProfileResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+          format: email
+        role:
+          type: string
+        status:
+          type: string
+        tenantId:
+          type: string
+          nullable: true
+        branchId:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+securitySchemes:
+  bearerAuth:
+    type: http
+    scheme: bearer
+    bearerFormat: JWT

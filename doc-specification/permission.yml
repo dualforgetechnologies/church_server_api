@@ -1,0 +1,358 @@
+paths:
+  /api/v1/permissions:
+    post:
+      tags: [Permissions]
+      summary: Create a new permission
+      description: System-level permission creation (SUPER_ADMIN only)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePermissionDto'
+      responses:
+        '201':
+          description: Permission created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PermissionResponse'
+        '400': { description: Validation error }
+        '401': { description: Unauthorized }
+        '403': { description: Forbidden }
+
+    get:
+      tags: [Permissions]
+      summary: Get all permissions
+      description: Retrieve permissions with optional filtering, pagination, and sorting
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: module
+          in: query
+          schema:
+            type: string
+        - name: action
+          in: query
+          schema:
+            type: string
+            enum: [CREATE, READ, UPDATE, DELETE, APPROVE, REJECT, PUBLISH, ARCHIVE, EXPORT, IMPORT]
+        - name: branchId
+          in: query
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: sortBy
+          in: query
+          schema:
+            type: string
+            enum: [module, action, createdAt]
+            default: createdAt
+        - name: sortOrder
+          in: query
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: asc
+      responses:
+        '200':
+          description: List of permissions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PermissionResponse'
+        '401': { description: Unauthorized }
+  /api/v1/permissions/{id}:
+    put:
+      tags: [Permissions]
+      summary: Update a permission
+      description: System-level permission update (SUPER_ADMIN only)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdatePermissionDto'
+      responses:
+        '200':
+          description: Permission updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PermissionResponse'
+        '400': { description: Validation error }
+        '401': { description: Unauthorized }
+        '403': { description: Forbidden }
+        '404': { description: Permission not found }
+
+  /api/v1/permissions/role/remove:
+    post:
+      tags: [Role Permissions]
+      summary: Remove permissions from a role
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RemovePermissionsFromRoleDto'
+      responses:
+        '200': { description: Permissions removed successfully }
+        '400': { description: Validation error }
+        '401': { description: Unauthorized }
+
+
+  /api/v1/permissions/role/{id}/scope:
+    put:
+      tags: [Role Permissions]
+      summary: Update role permission scope
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateRolePermissionScopeDto'
+      responses:
+        '200': { description: Role permission scope updated }
+        '400': { description: Validation error }
+        '401': { description: Unauthorized }
+
+  /api/v1/permissions/user/override:
+    post:
+      tags: [User Permissions]
+      summary: Create user permission override
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateUserPermissionOverrideDto'
+      responses:
+        '201': { description: Override created successfully }
+        '400': { description: Validation error }
+        '401': { description: Unauthorized }
+
+  /api/v1/permissions/user/{userId}/permission/{permissionId}/override:
+    put:
+      tags: [User Permissions]
+      summary: Update user permission override
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema: { type: string }
+        - name: permissionId
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserPermissionOverrideDto'
+      responses:
+        '200': { description: Override updated successfully }
+        '400': { description: Validation error }
+        '401': { description: Unauthorized }
+
+
+  /api/v1/permissions/user/override/remove:
+    post:
+      tags: [User Permissions]
+      summary: Remove user permission override
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RemoveUserPermissionOverrideDto'
+      responses:
+        '200': { description: Override removed successfully }
+        '400': { description: Validation error }
+        '401': { description: Unauthorized }
+
+
+components:
+  schemas:
+    CreatePermissionDto:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          type: array
+          description: List of permissions to create
+          items:
+            type: object
+            required:
+              - module
+              - action
+            properties:
+              module:
+                type: string
+                enum: [
+                  MEMBERS,
+                  MEMBER_REGISTRATION,
+                  MEMBER_DIRECTORY,
+                  MEMBER_SEARCH,
+                  MEMBER_FILTERING,
+                  MEMBER_PROFILE,
+                  MEMBER_STATUS_TRACKING,
+                  COMMUNITIES,
+                  CELL_MANAGEMENT,
+                  MINISTRY_MANAGEMENT,
+                  PROFESSION_MANAGEMENT,
+                  TRIBE_MANAGEMENT,
+                  COMMUNITY_LEADERSHIP,
+                  COMMUNITY_MEETINGS,
+                  ATTENDANCE_TRACKING,
+                  BIOMETRIC_ATTENDANCE,
+                  MOBILE_CHECKIN,
+                  VIRTUAL_ATTENDANCE,
+                  ATTENDANCE_REPORTS,
+                  SERVICES,
+                  EVENTS,
+                  EVENT_REGISTRATION,
+                  EVENT_TICKETING,
+                  TRAVEL_BOOKING,
+                  LEADERSHIP_HIERARCHY,
+                  LEADERSHIP_APPOINTMENTS,
+                  PROMOTION_REQUESTS,
+                  APPRAISALS,
+                  WORKER_TRANSITIONS,
+                  LEADER_APPROVAL,
+                  DEPARTMENTS,
+                  VOLUNTEER_MANAGEMENT,
+                  VOLUNTEER_SHIFTS,
+                  DEPARTMENT_ASSIGNMENTS,
+                  FINANCIAL_MANAGEMENT,
+                  ONLINE_GIVING,
+                  DONATION_TRACKING,
+                  PLEDGE_MANAGEMENT,
+                  ACCOUNTING_SYSTEM,
+                  TRANSACTION_MANAGEMENT,
+                  PAYMENT_GATEWAY,
+                  FINANCIAL_REPORTS,
+                  DONATION_RECEIPTS,
+                  LOYALTY_PROGRAM,
+                  LOYALTY_POINTS,
+                  MEMBER_BADGES,
+                  COMPETITION_MANAGEMENT,
+                  LEADERBOARD,
+                  TIER_MANAGEMENT,
+                  REWARDS_REDEMPTION,
+                  AI_TRAINING,
+                  AI_CERTIFICATION,
+                  TRAINING_CONTENT,
+                  CERTIFICATION_MANAGEMENT,
+                  DISCUSSION_PROMPTS,
+                  COMMUNITY_COMPETITIONS,
+                  PREDICTIVE_ANALYTICS,
+                  LIVE_STREAMING,
+                  BROADCAST_MANAGEMENT,
+                  SERMON_MANAGEMENT,
+                  HEADLINING_MANAGEMENT,
+                  AI_VIRTUAL_ASSISTANT,
+                  NEXT_GEN_BROADCASTING,
+                  CHATBOT_MANAGEMENT,
+                  PRAYER_REQUESTS,
+                  PRAYER_ENGAGEMENT,
+                  GROUP_MESSAGING,
+                  DIRECT_MESSAGING,
+                  NOTIFICATION_SYSTEM,
+                  EMAIL_MANAGEMENT,
+                  SMS_MANAGEMENT,
+                  COMMUNITY_CHAT,
+                  BRANCH_WIDE_CHAT,
+                  CHURCH_WIDE_CHAT,
+                  DIRECT_CHAT,
+                  CHAT_MODERATION,
+                  CHAT_ANALYTICS,
+                  SURVEYS,
+                  SURVEY_RESPONSES,
+                  FEEDBACK_MANAGEMENT,
+                  PARTNER_MANAGEMENT,
+                  DISCOUNT_MANAGEMENT,
+                  LOYALTY_REDEMPTION,
+                  SYSTEM_ADMIN,
+                  USER_MANAGEMENT,
+                  ROLE_MANAGEMENT,
+                  PERMISSION_MANAGEMENT,
+                  BRANCH_MANAGEMENT,
+                  TENANT_MANAGEMENT,
+                  API_TOKEN_MANAGEMENT,
+                  AUDIT_LOGS,
+                  SETTINGS,
+                  ONBOARDING,
+                  OFFBOARDING,
+                  PWA_MANAGEMENT,
+                  OFFLINE_SYNC,
+                  MOBILE_APP,
+                  ANALYTICS,
+                  REPORTING,
+                  DASHBOARD,
+                  HEALTH_SCORING
+                ]
+              action:
+                type: string
+                enum: [CREATE, READ, UPDATE, DELETE, APPROVE, REJECT, PUBLISH, ARCHIVE, EXPORT, IMPORT]
+              description:
+                type: string
+                description: Optional description of the permission
+    PermissionResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        module:
+          type: string
+        action:
+          type: string
+        description:
+          type: string
+        branchId:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time

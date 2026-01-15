@@ -1,0 +1,152 @@
+components:
+  schemas:
+
+    # --- Existing ---
+    PaginatedMetaData:
+      type: object
+      properties:
+        page:
+          type: integer
+          example: 1
+        limit:
+          type: integer
+          example: 20
+        total:
+          type: integer
+          example: 120
+        totalPages:
+          type: integer
+          example: 6
+
+    AppResponse:
+      type: object
+      required:
+        - message
+        - code
+        - success
+      properties:
+        message:
+          type: string
+          example: Operation successful
+        code:
+          type: integer
+          example: 200
+        success:
+          type: boolean
+          example: true
+        data:
+          nullable: true
+        pagination:
+          $ref: '#/components/schemas/PaginatedMetaData'
+        environment:
+          type: string
+          example: production
+
+    ErrorResponse:
+      allOf:
+        - $ref: '#/components/schemas/AppResponse'
+        - type: object
+          properties:
+            success:
+              example: false
+            data:
+              nullable: true
+
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+          format: email
+        firstName:
+          type: string
+        lastName:
+          type: string
+        role:
+          type: string
+        accountStatus:
+          type: string
+          enum: [ACTIVE, INACTIVE, SUSPENDED]
+
+    # --- Missing components for your auth routes ---
+    LoginDto:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 6
+
+    RefreshTokenDto:
+      type: object
+      required:
+        - refreshToken
+      properties:
+        refreshToken:
+          type: string
+
+    UserResponse:
+      allOf:
+        - $ref: '#/components/schemas/AppResponse'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/User'
+
+    ChangePasswordDto:
+      type: object
+      required:
+        - oldPassword
+        - newPassword
+      properties:
+        oldPassword:
+          type: string
+        newPassword:
+          type: string
+
+    ResetPasswordDto:
+      type: object
+      required:
+        - token
+        - newPassword
+        - confirmPassword
+      properties:
+        token:
+          type: string
+        newPassword:
+          type: string
+          minLength: 6
+        confirmPassword:
+          type: string
+          minLength: 6
+
+    RequestPasswordResetDto:
+      type: object
+      required:
+        - email
+      properties:
+        email:
+          type: string
+          format: email
+
+    VerifyAccountDto:
+      type: object
+      required:
+        - token
+      properties:
+        token:
+          type: string
+          description: JWT verification token sent to the user's email
+  
+  securitySchemes:
+    SuperAdminSecret:
+      type: apiKey
+      in: header
+      name: super_admin_secret
