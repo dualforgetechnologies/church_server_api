@@ -215,6 +215,24 @@ export class BranchController extends Controller {
             });
         }
     };
+    /**
+     * Get branch by ID
+     */
+    getBranchById = async (req: Request, res: Response) => {
+        try {
+            const { id } = req.params;
+
+            const result = await this.branchService.getBranchById(id, req.tenantId);
+            return this.response(res, result);
+        } catch (error) {
+            return this.error({
+                res,
+                error,
+                logger: this.logger,
+                message: 'Failed to retrieve branch',
+            });
+        }
+    };
 }
 
 export const branchController = new BranchController();

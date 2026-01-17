@@ -410,4 +410,39 @@ export class BranchService extends Service {
             });
         }, 'Failed to retrieve branches');
     }
+    /**
+     * Get a single branch by ID.
+     *
+     * @param id - Branch ID
+     * @param tenantId - Tenant ID (for isolation & security)
+     * @returns AppResponse containing the branch
+     */
+    async getBranchById(id: string, tenantId: string): Promise<AppResponse> {
+        return this.run(async () => {
+            const branch = await this.branchRepo.findById(
+                {
+                    id,
+                    tenantId,
+                    isDeleted: false,
+                },
+                {
+                    include: {
+                        members: true,
+                        pastor: true,
+                        parent: true,
+                        children: true,
+                    },
+                },
+            );
+
+            if (!branch) {
+                throw new Error(`Branch with ID "${id}" not found`);
+            }
+
+            return this.success({
+                data: branch,
+                message: 'Branch retrieved successfully',
+            });
+        }, 'Failed to retrieve branch');
+    }
 }

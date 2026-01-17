@@ -129,5 +129,9 @@ branchRouter.get(
     validateQueryDto(branchListQueryDto),
     branchController.listBranches,
 );
+/**
+ * Get branch by ID
+ */
+branchRouter.get('/:id', authJWT.authenticate, tenantMiddleware(), branchController.getBranchById);
 
 export default branchRouter;

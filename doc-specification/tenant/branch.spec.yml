@@ -101,6 +101,26 @@ paths:
                 $ref: '#/components/schemas/BranchResponse'
 
   /api/v1/branches/{id}:
+    get:
+      tags: [Branches]
+      summary: Get a branch by ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Branch retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BranchResponse'
+        '401': { description: Unauthorized }
+        '404': { description: Branch not found }
+
     put:
       tags: [Branches]
       summary: Update branch details
