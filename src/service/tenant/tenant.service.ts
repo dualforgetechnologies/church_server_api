@@ -1,475 +1,455 @@
 import {
-  Member,
-  MemberStatus,
-  MemberType,
-  Prisma,
-  PrismaClient,
-  Tenant,
-  User,
-  UserRole,
-  UserStatus,
-} from "@prisma/client";
-import { StatusCodes } from "http-status-codes";
-import * as bcrypt from "bcryptjs";
+    Member,
+    MemberStatus,
+    MemberType,
+    Prisma,
+    PrismaClient,
+    Tenant,
+    User,
+    UserRole,
+    UserStatus,
+} from '@prisma/client';
+import * as bcrypt from 'bcryptjs';
+import { StatusCodes } from 'http-status-codes';
 
-import Logger from "@/config/logger";
-import { AppResponse } from "@/types/types";
-import { Service } from "../base/service.base";
+import Logger from '@/config/logger';
+import { AppResponse } from '@/types/types';
+import { Service } from '../base/service.base';
 
 import {
-  CreateTenantDto,
-  CreateTrialTenantDto,
-  ExtendTenantSubscriptionDto,
-  ReactivateTenantDto,
-  SuspendTenantDto,
-  TenantListQueryDto,
-  UpdateTenantDto,
-  UpdateTenantStatusDto,
-  UpdateTenantSubscriptionDto,
-} from "@/DTOs/tenant/tenant.dto";
-import { CreateUserDto } from "@/DTOs/user";
-import { TenantRepository } from "@/repository/tenant/tenant.repository";
-import { UserService } from "../user/user.service";
-import { generateTempKey } from "@/utils/generateTemKey";
-import { MailService } from "../transports/email/mail.service";
+    CreateTenantDto,
+    CreateTrialTenantDto,
+    ExtendTenantSubscriptionDto,
+    ReactivateTenantDto,
+    SuspendTenantDto,
+    TenantListQueryDto,
+    UpdateTenantDto,
+    UpdateTenantStatusDto,
+    UpdateTenantSubscriptionDto,
+} from '@/DTOs/tenant/tenant.dto';
+import { CreateUserDto } from '@/DTOs/user';
+import { MemberRepository } from '@/repository/member.repository';
+import { TenantRepository } from '@/repository/tenant/tenant.repository';
+import { UserRepository } from '@/repository/user.repository';
+import { generateTempKey } from '@/utils/generateTemKey';
+import { MailService } from '../transports/email/mail.service';
+import { UserService } from '../user/user.service';
 
 export class TenantService extends Service {
-  private tenantRepo: TenantRepository;
-  private userService: UserService;
-  private mailService: MailService;
+    private tenantRepo: TenantRepository;
+    private userRepo: UserRepository;
+    private memberRepo: MemberRepository;
 
-  constructor(prisma: PrismaClient) {
-    super(new Logger("TenantService", "TENANT_CORE_SERVICE"));
-    this.tenantRepo = new TenantRepository(prisma);
-    this.userService = new UserService(prisma);
-    this.mailService = new MailService();
-  }
+    private userService: UserService;
+    private mailService: MailService;
 
-  /**
-   * Ensure tenant fields (name, slug, email) are unique before create/update.
-   *
-   * @param data - Partial tenant data to check for uniqueness.
-   * @param excludeId - Optional tenant ID to exclude from uniqueness check (useful on update).
-   * @throws Error if any field already exists for a different tenant.
-   */
-  private async ensureUniqueTenantFields(
-    data: Partial<{ name: string; slug: string; email: string }>,
-    excludeId?: string
-  ) {
-    const { name, slug, email } = data;
-
-    if (name) {
-      const existingByName = await this.tenantRepo.findFirst({
-        name,
-        isDeleted: false,
-        id: { not: excludeId },
-      });
-      if (existingByName) {
-        throw new Error(`Tenant with name "${name}" already exists`);
-      }
+    constructor(prisma: PrismaClient) {
+        super(new Logger('TenantService', 'TENANT_CORE_SERVICE'));
+        this.tenantRepo = new TenantRepository(prisma);
+        this.userRepo = new UserRepository(prisma);
+        this.memberRepo = new MemberRepository(prisma);
+        this.userService = new UserService(prisma);
+        this.mailService = new MailService();
     }
 
-    if (slug) {
-      const existingBySlug = await this.tenantRepo.findFirst({
-        slug,
-        isDeleted: false,
-        id: { not: excludeId },
-      });
-      if (existingBySlug) {
-        throw new Error(`Tenant with slug "${slug}" already exists`);
-      }
+    /**
+     * Ensure tenant fields (name, slug, email) are unique before create/update.
+     *
+     * @param data - Partial tenant data to check for uniqueness.
+     * @param excludeId - Optional tenant ID to exclude from uniqueness check (useful on update).
+     * @throws Error if any field already exists for a different tenant.
+     */
+    private async ensureUniqueTenantFields(
+        data: Partial<{ name: string; slug: string; email: string }>,
+        excludeId?: string,
+    ) {
+        const { name, slug, email } = data;
+
+        if (name) {
+            const existingByName = await this.tenantRepo.findFirst({
+                name,
+                isDeleted: false,
+                id: { not: excludeId },
+            });
+            if (existingByName) {
+                throw new Error(`Tenant with name "${name}" already exists`);
+            }
+        }
+
+        if (slug) {
+            const existingBySlug = await this.tenantRepo.findFirst({
+                slug,
+                isDeleted: false,
+                id: { not: excludeId },
+            });
+            if (existingBySlug) {
+                throw new Error(`Tenant with slug "${slug}" already exists`);
+            }
+        }
+
+        if (email) {
+            const existingByEmail = await this.tenantRepo.findFirst({
+                email,
+                isDeleted: false,
+                id: { not: excludeId },
+            });
+            if (existingByEmail) {
+                throw new Error(`Tenant with email "${email}" already exists`);
+            }
+        }
     }
 
-    if (email) {
-      const existingByEmail = await this.tenantRepo.findFirst({
-        email,
-        isDeleted: false,
-        id: { not: excludeId },
-      });
-      if (existingByEmail) {
-        throw new Error(`Tenant with email "${email}" already exists`);
-      }
+    /**
+     * Create a new tenant.
+     *
+     * @param data - Tenant data to create.
+     * @returns Standardized response containing the created tenant.
+     */
+    async createTenant(data: CreateTenantDto): Promise<AppResponse> {
+        return this.run(async () => {
+            await this.ensureUniqueTenantFields({
+                name: data.name,
+                slug: data.slug,
+                email: data.email,
+            });
+
+            const tenant = await this.tenantRepo.create(data);
+            return this.success({
+                data: tenant,
+                message: 'Tenant created successfully',
+            });
+        }, 'Failed to create tenant');
     }
-  }
 
-  /**
-   * Create a new tenant.
-   *
-   * @param data - Tenant data to create.
-   * @returns Standardized response containing the created tenant.
-   */
-  async createTenant(data: CreateTenantDto): Promise<AppResponse> {
-    return this.run(async () => {
-      await this.ensureUniqueTenantFields({
-        name: data.name,
-        slug: data.slug,
-        email: data.email,
-      });
+    /**
+     * Create a trial tenant (free tier).
+     *
+     * @param data - Trial tenant data.
+     * @returns Standardized response containing the created trial tenant.
+     */
+    async createTrialTenant(data: CreateTrialTenantDto): Promise<AppResponse> {
+        return this.run(async () => {
+            const exists = await this.tenantRepo.findFirst({ email: data.email });
+            if (exists) {
+                return this.error('Tenant with this email already exists', StatusCodes.CONFLICT);
+            }
 
-      const tenant = await this.tenantRepo.create(data);
-      return this.success({
-        data: tenant,
-        message: "Tenant created successfully",
-      });
-    }, "Failed to create tenant");
-  }
+            const tenant = await this.tenantRepo.create(data);
 
-  /**
-   * Create a trial tenant (free tier).
-   *
-   * @param data - Trial tenant data.
-   * @returns Standardized response containing the created trial tenant.
-   */
-  async createTrialTenant(data: CreateTrialTenantDto): Promise<AppResponse> {
-    return this.run(async () => {
-      const exists = await this.tenantRepo.findFirst({ email: data.email });
-      if (exists) {
-        return this.error(
-          "Tenant with this email already exists",
-          StatusCodes.CONFLICT
-        );
-      }
+            return this.success({
+                data: tenant,
+                message: 'Trial tenant created successfully',
+                code: StatusCodes.CREATED,
+            });
+        }, 'Failed to create trial tenant');
+    }
 
-      const tenant = await this.tenantRepo.create(data);
+    /**
+     * Find tenant by ID.
+     *
+     * @param id - Tenant ID.
+     * @returns Standardized response containing the tenant data.
+     */
+    async findById(id: string): Promise<AppResponse> {
+        return this.run(async () => {
+            const tenant = await this.tenantRepo.findById({ id });
+            if (!tenant) {
+                return this.error('Tenant not found', StatusCodes.NOT_FOUND);
+            }
 
-      return this.success({
-        data: tenant,
-        message: "Trial tenant created successfully",
-        code: StatusCodes.CREATED,
-      });
-    }, "Failed to create trial tenant");
-  }
+            return this.success({ data: tenant });
+        }, 'Failed to fetch tenant');
+    }
 
-  /**
-   * Find tenant by ID.
-   *
-   * @param id - Tenant ID.
-   * @returns Standardized response containing the tenant data.
-   */
-  async findById(id: string): Promise<AppResponse> {
-    return this.run(async () => {
-      const tenant = await this.tenantRepo.findById({ id });
-      if (!tenant) {
-        return this.error("Tenant not found", StatusCodes.NOT_FOUND);
-      }
+    /**
+     * Update tenant data.
+     *
+     * @param id - Tenant ID.
+     * @param data - Tenant fields to update.
+     * @returns Standardized response containing updated tenant data.
+     */
+    async updateTenant(id: string, data: UpdateTenantDto): Promise<AppResponse> {
+        return this.run(async () => {
+            await this.ensureUniqueTenantFields({ name: data.name, slug: data.slug, email: data.email }, id);
 
-      return this.success({ data: tenant });
-    }, "Failed to fetch tenant");
-  }
+            const updated = await this.tenantRepo.update({ id }, data);
+            return this.success({
+                data: updated,
+                message: 'Tenant updated successfully',
+            });
+        }, 'Failed to update tenant');
+    }
 
-  /**
-   * Update tenant data.
-   *
-   * @param id - Tenant ID.
-   * @param data - Tenant fields to update.
-   * @returns Standardized response containing updated tenant data.
-   */
-  async updateTenant(id: string, data: UpdateTenantDto): Promise<AppResponse> {
-    return this.run(async () => {
-      await this.ensureUniqueTenantFields(
-        { name: data.name, slug: data.slug, email: data.email },
-        id
-      );
+    /**
+     * Soft-delete a tenant.
+     *
+     * @param id - Tenant ID.
+     * @param deletedById - User ID who performed the deletion.
+     * @returns Standardized response containing deleted tenant data.
+     */
+    async deleteTenant(id: string, deletedById: string): Promise<AppResponse> {
+        return this.run(async () => {
+            const deleted = await this.tenantRepo.update(
+                { id },
+                {
+                    isDeleted: true,
+                    deletedById,
+                    deletedAt: new Date(),
+                },
+            );
 
-      const updated = await this.tenantRepo.update({ id }, data);
-      return this.success({
-        data: updated,
-        message: "Tenant updated successfully",
-      });
-    }, "Failed to update tenant");
-  }
+            return this.success({
+                data: deleted,
+                message: 'Tenant deleted successfully',
+            });
+        }, 'Failed to delete tenant');
+    }
 
-  /**
-   * Soft-delete a tenant.
-   *
-   * @param id - Tenant ID.
-   * @param deletedById - User ID who performed the deletion.
-   * @returns Standardized response containing deleted tenant data.
-   */
-  async deleteTenant(id: string, deletedById: string): Promise<AppResponse> {
-    return this.run(async () => {
-      const deleted = await this.tenantRepo.update(
-        { id },
-        {
-          isDeleted: true,
-          deletedById,
-          deletedAt: new Date(),
-        }
-      );
+    /**
+     * Update tenant subscription details.
+     *
+     * @param id - Tenant ID.
+     * @param data - Subscription update data.
+     * @returns Standardized response containing updated tenant subscription.
+     */
+    async updateTenantSubscription(id: string, data: UpdateTenantSubscriptionDto): Promise<AppResponse> {
+        return this.run(async () => {
+            const updated = await this.tenantRepo.update({ id }, data);
 
-      return this.success({
-        data: deleted,
-        message: "Tenant deleted successfully",
-      });
-    }, "Failed to delete tenant");
-  }
+            return this.success({
+                data: updated,
+                message: 'Tenant subscription updated successfully',
+            });
+        }, 'Failed to update tenant subscription');
+    }
 
-  /**
-   * Update tenant subscription details.
-   *
-   * @param id - Tenant ID.
-   * @param data - Subscription update data.
-   * @returns Standardized response containing updated tenant subscription.
-   */
-  async updateTenantSubscription(
-    id: string,
-    data: UpdateTenantSubscriptionDto
-  ): Promise<AppResponse> {
-    return this.run(async () => {
-      const updated = await this.tenantRepo.update({ id }, data);
+    /**
+     * Extend tenant subscription expiration date.
+     *
+     * @param id - Tenant ID.
+     * @param data - New subscription expiry date.
+     * @returns Standardized response containing updated tenant subscription.
+     */
+    async extendTenantSubscription(id: string, data: ExtendTenantSubscriptionDto): Promise<AppResponse> {
+        return this.run(async () => {
+            const updated = await this.tenantRepo.update({ id }, data);
 
-      return this.success({
-        data: updated,
-        message: "Tenant subscription updated successfully",
-      });
-    }, "Failed to update tenant subscription");
-  }
+            return this.success({
+                data: updated,
+                message: 'Tenant subscription extended successfully',
+            });
+        }, 'Failed to extend tenant subscription');
+    }
 
-  /**
-   * Extend tenant subscription expiration date.
-   *
-   * @param id - Tenant ID.
-   * @param data - New subscription expiry date.
-   * @returns Standardized response containing updated tenant subscription.
-   */
-  async extendTenantSubscription(
-    id: string,
-    data: ExtendTenantSubscriptionDto
-  ): Promise<AppResponse> {
-    return this.run(async () => {
-      const updated = await this.tenantRepo.update({ id }, data);
+    /**
+     * Update tenant status (ACTIVE, INACTIVE, etc.).
+     *
+     * @param id - Tenant ID.
+     * @param data - New tenant status.
+     * @returns Standardized response containing updated tenant status.
+     */
+    async updateTenantStatus(id: string, data: UpdateTenantStatusDto): Promise<AppResponse> {
+        return this.run(async () => {
+            const updated = await this.tenantRepo.update({ id }, data);
 
-      return this.success({
-        data: updated,
-        message: "Tenant subscription extended successfully",
-      });
-    }, "Failed to extend tenant subscription");
-  }
+            return this.success({
+                data: updated,
+                message: 'Tenant status updated successfully',
+            });
+        }, 'Failed to update tenant status');
+    }
 
-  /**
-   * Update tenant status (ACTIVE, INACTIVE, etc.).
-   *
-   * @param id - Tenant ID.
-   * @param data - New tenant status.
-   * @returns Standardized response containing updated tenant status.
-   */
-  async updateTenantStatus(
-    id: string,
-    data: UpdateTenantStatusDto
-  ): Promise<AppResponse> {
-    return this.run(async () => {
-      const updated = await this.tenantRepo.update({ id }, data);
+    /**
+     * Suspend a tenant and optionally clear subscription.
+     *
+     * @param id - Tenant ID.
+     * @param data - Reason for suspension.
+     * @returns Standardized response containing suspended tenant.
+     */
+    async suspendTenant(id: string, data: SuspendTenantDto): Promise<AppResponse> {
+        return this.run(async () => {
+            const updated = await this.tenantRepo.update(
+                { id },
+                {
+                    status: 'SUSPENDED',
+                    subscriptionExpiresAt: null,
+                },
+            );
 
-      return this.success({
-        data: updated,
-        message: "Tenant status updated successfully",
-      });
-    }, "Failed to update tenant status");
-  }
+            return this.success({
+                data: updated,
+                message: `Tenant suspended: ${data.reason}`,
+            });
+        }, 'Failed to suspend tenant');
+    }
 
-  /**
-   * Suspend a tenant and optionally clear subscription.
-   *
-   * @param id - Tenant ID.
-   * @param data - Reason for suspension.
-   * @returns Standardized response containing suspended tenant.
-   */
-  async suspendTenant(
-    id: string,
-    data: SuspendTenantDto
-  ): Promise<AppResponse> {
-    return this.run(async () => {
-      const updated = await this.tenantRepo.update(
-        { id },
-        {
-          status: "SUSPENDED",
-          subscriptionExpiresAt: null,
-        }
-      );
+    /**
+     * Reactivate a suspended tenant.
+     *
+     * @param id - Tenant ID.
+     * @param data - Status to reactivate to (should be ACTIVE).
+     * @returns Standardized response containing reactivated tenant.
+     */
+    async reactivateTenant(id: string, data: ReactivateTenantDto): Promise<AppResponse> {
+        return this.run(async () => {
+            const updated = await this.tenantRepo.update({ id }, { status: data.status });
 
-      return this.success({
-        data: updated,
-        message: `Tenant suspended: ${data.reason}`,
-      });
-    }, "Failed to suspend tenant");
-  }
+            return this.success({
+                data: updated,
+                message: 'Tenant reactivated successfully',
+            });
+        }, 'Failed to reactivate tenant');
+    }
 
-  /**
-   * Reactivate a suspended tenant.
-   *
-   * @param id - Tenant ID.
-   * @param data - Status to reactivate to (should be ACTIVE).
-   * @returns Standardized response containing reactivated tenant.
-   */
-  async reactivateTenant(
-    id: string,
-    data: ReactivateTenantDto
-  ): Promise<AppResponse> {
-    return this.run(async () => {
-      const updated = await this.tenantRepo.update(
-        { id },
-        { status: data.status }
-      );
+    /**
+     * List tenants with optional filtering, sorting, and pagination.
+     *
+     * @param query - Query parameters including page, limit, filters, and sort options.
+     * @returns Standardized response containing tenants and pagination metadata.
+     */
+    async listTenants(query: TenantListQueryDto): Promise<AppResponse> {
+        return this.run(async () => {
+            const {
+                page = 1,
+                limit = 20,
+                sortBy = 'createdAt',
+                sortOrder = 'desc',
+                status,
+                subscriptionTier,
+                country,
+                email,
+                isDeleted = false,
+            } = query;
 
-      return this.success({
-        data: updated,
-        message: "Tenant reactivated successfully",
-      });
-    }, "Failed to reactivate tenant");
-  }
+            const where: Prisma.TenantWhereInput = {
+                isDeleted,
+                ...(status && { status }),
+                ...(subscriptionTier && { subscriptionTier }),
+                ...(country && { country }),
+                ...(email && { email: { contains: email, mode: 'insensitive' } }),
+            };
 
-  /**
-   * List tenants with optional filtering, sorting, and pagination.
-   *
-   * @param query - Query parameters including page, limit, filters, and sort options.
-   * @returns Standardized response containing tenants and pagination metadata.
-   */
-  async listTenants(query: TenantListQueryDto): Promise<AppResponse> {
-    return this.run(async () => {
-      const {
-        page = 1,
-        limit = 20,
-        sortBy = "createdAt",
-        sortOrder = "desc",
-        status,
-        subscriptionTier,
-        country,
-        email,
-        isDeleted = false,
-      } = query;
+            const orderBy: Prisma.Enumerable<Prisma.TenantOrderByWithRelationInput> = {
+                [sortBy]: sortOrder,
+            };
 
-      const where: Prisma.TenantWhereInput = {
-        isDeleted,
-        ...(status && { status }),
-        ...(subscriptionTier && { subscriptionTier }),
-        ...(country && { country }),
-        ...(email && { email: { contains: email, mode: "insensitive" } }),
-      };
+            const res = await this.tenantRepo.findAll(where, orderBy, {
+                page,
+                limit,
+            });
 
-      const orderBy: Prisma.Enumerable<Prisma.TenantOrderByWithRelationInput> =
-        {
-          [sortBy]: sortOrder,
-        };
+            return this.success({
+                data: res.data,
+                pagination: res.pagination,
+                message: 'Tenants retrieved successfully',
+            });
+        }, 'Failed to retrieve tenants');
+    }
 
-      const res = await this.tenantRepo.findAll(where, orderBy, {
-        page,
-        limit,
-      });
+    async createTenantWithAdmin(tenantData: CreateTenantDto, adminData: CreateUserDto): Promise<AppResponse> {
+        return this.run(async () => {
+            const prisma = this.tenantRepo.prisma;
 
-      return this.success({
-        data: res.data,
-        pagination: res.pagination,
-        message: "Tenants retrieved successfully",
-      });
-    }, "Failed to retrieve tenants");
-  }
+            let tenant: Tenant | null = null;
+            let user: User | null = null;
+            let member: Member | null = null;
 
-  async createTenantWithAdmin(
-    tenantData: CreateTenantDto,
-    adminData: CreateUserDto
-  ): Promise<AppResponse> {
-    return this.run(async () => {
-      const prisma = this.tenantRepo.prisma;
+            try {
+                const existingTenant = await prisma.tenant.findFirst({
+                    where: {
+                        OR: [{ name: tenantData.name }, { slug: tenantData.slug }, { email: tenantData.email }],
+                    },
+                });
 
-      let tenant: Tenant | null = null;
-      let user: User | null = null;
-      let member: Member | null = null;
+                if (existingTenant) {
+                    throw new Error('Tenant with same name, slug, or email already exists');
+                }
 
-      try {
-        const existingTenant = await prisma.tenant.findFirst({
-          where: {
-            OR: [
-              { name: tenantData.name },
-              { slug: tenantData.slug },
-              { email: tenantData.email },
-            ],
-          },
-        });
+                tenant = await this.tenantRepo.create(tenantData);
 
-        if (existingTenant) {
-          throw new Error(
-            "Tenant with same name, slug, or email already exists"
-          );
-        }
+                const {
+                    email,
+                    password,
+                    branchId,
+                    twoFactorEnabled,
+                    role,
+                    departmentId,
+                    cellId,
+                    ministryId,
+                    ...memberData
+                } = adminData;
 
+                const tempPassword: string = generateTempKey(email, '', 6);
 
-        tenant = await prisma.tenant.create({
-          data: tenantData,
-        });
+                const passwordHash: string = await bcrypt.hash(tempPassword, 10);
 
-        const { password, email, branchId, twoFactorEnabled, role,...memberData } =
-          adminData;
+                user = await this.userRepo.create({
+                    email,
+                    passwordHash,
+                    role: UserRole.TENANT_ADMIN,
+                    status: UserStatus.ACTIVE,
+                    twoFactorEnabled: twoFactorEnabled ?? false,
+                });
 
-        const tempPassword: string = password ?? generateTempKey(email, "", 6);
+                member = await this.memberRepo.create({
+                    ...memberData,
+                    memberNumber: `M-${Date.now()}`,
+                    memberType: MemberType.MEMBER,
+                    memberStatus: MemberStatus.ACTIVE,
+                    email,
+                    user: {
+                        connect: { id: user.id },
+                    },
+                    tenant: {
+                        connect: {
+                            id: tenant.id,
+                        },
+                    },
+                });
+                if (member?.id) {
+                    await this.userRepo.update(
+                        { id: user.id },
+                        {
+                            member: {
+                                connect: { id: member?.id },
+                            },
+                        },
+                    );
+                }
 
-        const passwordHash: string = await bcrypt.hash(tempPassword, 10);
+                await this.mailService.newChurchMsg({
+                    to: email,
+                    email,
+                    temPassword: tempPassword,
+                    organizationName: tenant.name,
+                    firstName: memberData.firstName ?? '',
+                    lastName: memberData.lastName ?? '',
+                    modules: [],
+                    address: tenant.address ?? 'Not stated',
+                    logo: tenant.logo ?? undefined,
+                });
 
- 
-        user = await prisma.user.create({
-          data: {
-            email,
-            passwordHash,
-            role: UserRole.TENANT_ADMIN,
-            status: UserStatus.ACTIVE,
-            twoFactorEnabled: twoFactorEnabled ?? false,
-            tenantId: tenant.id,
-          },
-        });
+                return this.success({
+                    data: { tenant, admin: user, member },
+                    message: 'Tenant and tenant admin created successfully',
+                    code: 201,
+                });
+            } catch (error) {
+                //  COMPENSATING ACTIONS (ROLLBACK)
+                if (member) {
+                    await prisma.member.delete({ where: { id: member.id } }).catch(() => undefined);
+                }
 
-   
-        member = await prisma.member.create({
-          data: {
-            ...memberData,
-            userId: user.id,
-            tenantId: tenant.id,
-            branchId,
-            memberNumber: `M-${Date.now()}`,
-            memberType: MemberType.MEMBER,
-            memberStatus: MemberStatus.ACTIVE,
-            email,
-          },
-        });
+                if (user) {
+                    await prisma.user.delete({ where: { id: user.id } }).catch(() => undefined);
+                }
 
- 
-        await this.mailService.sendNewEmployeeCredentialsMail({
-          to: email,
-          email,
-          temPassword: tempPassword,
-          organizationName: tenant.name,
-          role: UserRole.TENANT_ADMIN,
-          firstName: memberData.firstName ?? "",
-          lastName: memberData.lastName ?? "",
-        });
+                if (tenant) {
+                    await prisma.tenant.delete({ where: { id: tenant.id } }).catch(() => undefined);
+                }
 
-        return this.success({
-          data: { tenant, admin: user },
-          message: "Tenant and tenant admin created successfully",
-          code: 201,
-        });
-      } catch (error) {
-        //  COMPENSATING ACTIONS (ROLLBACK)
-        if (member) {
-          await prisma.member
-            .delete({ where: { id: member.id } })
-            .catch(() => undefined);
-        }
-
-        if (user) {
-          await prisma.user
-            .delete({ where: { id: user.id } })
-            .catch(() => undefined);
-        }
-
-        if (tenant) {
-          await prisma.tenant
-            .delete({ where: { id: tenant.id } })
-            .catch(() => undefined);
-        }
-
-        return this.error(
-          (error as Error).message || "Failed to create tenant with admin"
-        );
-      }
-    }, "Failed to create tenant with admin");
-  }
+                return this.error((error as Error).message || 'Failed to create tenant with admin');
+            }
+        }, 'Failed to create tenant with admin');
+    }
 }

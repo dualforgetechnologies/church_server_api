@@ -5,6 +5,7 @@ import { getRenderedEmail } from '@/utils/mailGenerator';
 import { MailClient } from './client';
 
 import { EmailTemplateName, NewUserAccount, ResetAccountPassword, TemplateParams } from '@/types/mail';
+import { DEFAULT_CHURCH_LOGO } from '@/utils/constants/common';
 
 export class MailService extends MailClient {
     private generateMail(templateName: EmailTemplateName, params: TemplateParams): string {
@@ -53,7 +54,8 @@ export class MailService extends MailClient {
             html,
         });
     };
-    sendSuperAdminRegisterOrgMail = async (params: NewOrganizationAccount): Promise<boolean> => {
+
+    newChurchMsg = async (params: NewOrganizationAccount): Promise<boolean> => {
         const html = this.generateMail(EmailTemplateName.SUPER_ADMIN_REGISTER_NEW_ORGANIZATION, {
             FIRST_NAME: params.firstName,
             LAST_NAME: params.lastName,
@@ -63,14 +65,16 @@ export class MailService extends MailClient {
             ORGANIZATION_NAME: params.organizationName,
             SUBSCRIPTION_PLAN: params.subscriptionPlan,
             MODULES_NAMES: params.modules.toString(),
+            ORGANIZATION_ADDRESS: params.address,
             SUBSCRIPTION_PRICE: params.subscriptionPrice,
             SUBSCRIPTION_STATUS: params.subscriptionStatus,
             EXPIRY_DATE: params.expiryDate,
+            ORGANIZATION_LOGO: params?.logo ?? DEFAULT_CHURCH_LOGO,
         });
 
         return this.sendMail({
             to: params.email,
-            subject: 'New app organization account',
+            subject: `${params.organizationName} Platform`,
             html,
         });
     };

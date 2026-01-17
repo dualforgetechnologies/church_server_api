@@ -48,7 +48,7 @@ export abstract class BaseRepository<
             include?: TInclude;
             select?: TSelect;
         },
-    ): Promise<(TModel  ) | null> {
+    ): Promise<TModel | null> {
         const query = { where } as Record<string, unknown>;
         if (options?.include) {
             query.include = options.include;

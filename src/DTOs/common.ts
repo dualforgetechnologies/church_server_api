@@ -38,7 +38,7 @@ const commonPaginationQueryDto = getPaginatedQueryDto.extend({
         })
         .default('desc'),
     search: z.string().optional(),
-    sortBy:z.string().optional()
+    sortBy: z.string().optional(),
 });
 const paramOrgIdDto = z.object({
     organizationId: z.string().min(1),

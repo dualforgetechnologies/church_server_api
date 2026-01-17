@@ -17,7 +17,7 @@ export abstract class Controller {
         message?: string;
     }): object {
         const response = new ResponseHandler(params.res);
-      
+
         return handleControllerError({
             error: params.error as unknown as Record<string, string>,
             response,

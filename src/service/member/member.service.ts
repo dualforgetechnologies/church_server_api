@@ -22,8 +22,6 @@ export class MemberService extends Service {
         this.tenantRepo = new TenantRepository(prisma);
     }
 
-
-
     /**
      * Ensure a tenant exists.
      *

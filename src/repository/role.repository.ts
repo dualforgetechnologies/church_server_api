@@ -42,7 +42,6 @@ export class RoleRepository extends BaseRepository<
         this.model = prisma.role;
     }
 
-
     async findActiveRolesByTenant(tenantId: string) {
         return this.model.findMany({
             where: { tenantId, isActive: true },
@@ -90,7 +89,6 @@ export class UserRoleAssignmentRepository extends BaseRepository<
         this.model = prisma.userRoleAssignment;
     }
 
-
     async findActiveByUser(userId: string) {
         return this.model.findMany({
             where: { userId, isActive: true },
@@ -113,7 +111,6 @@ export class UserPermissionOverrideRepository extends BaseRepository<
         super(prisma);
         this.model = prisma.userPermissionOverride;
     }
-
 
     async findActiveByUser(userId: string) {
         return this.model.findMany({

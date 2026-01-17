@@ -34,7 +34,6 @@ export class BranchService extends Service {
         this.branchUserAssignmentRepo = new UserBranchAssignmentRepository(prisma);
     }
 
-
     /**
      * Ensure branch code and slug are unique within a tenant.
      *
@@ -100,8 +99,6 @@ export class BranchService extends Service {
             }
         }
     }
-
-
 
     /**
      * Internal helper to create any type of branch with proper relation connections.

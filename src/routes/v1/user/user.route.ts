@@ -15,11 +15,7 @@ userRouter.post(
     userController.createUser,
 );
 
-userRouter.post(
-    '/super-admin',
-    validateBodyDto(createSuperAdminDto),
-    userController.createSuperAdmin,
-);
+userRouter.post('/super-admin', validateBodyDto(createSuperAdminDto), userController.createSuperAdmin);
 
 userRouter.post('/signup', validateBodyDto(signupUserDto), userController.signupUser);
 userRouter.get('/:id', authJWT.authenticate, userController.getUserById);

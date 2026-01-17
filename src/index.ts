@@ -6,9 +6,9 @@ import Logger from './config/logger';
 import { ROUTE_BASE, Router } from './routes';
 import { appServices } from './service/app.service';
 
-import swaggerDocs from './utils/swagger/swagger';
 import { AppConfig } from './config/app-config';
 import { startSeed } from './seeding';
+import swaggerDocs from './utils/swagger/swagger';
 
 require('dotenv').config();
 
@@ -53,7 +53,6 @@ server.listen(PORT, () => {
     logger.log(`Server running at http://localhost:${PORT}`);
 });
 
-
-if(AppConfig.app.seed==1){
-    startSeed()
+if (AppConfig.app.seed === 1) {
+    startSeed();
 }

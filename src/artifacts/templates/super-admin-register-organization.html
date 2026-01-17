@@ -111,14 +111,18 @@
 <body>
   <div class="container">
     <div class="header">
-      <img src="https://res.cloudinary.com/dhcshtjwk/image/upload/v1750249442/app-logo_q2rizh.png" alt="app Logo" />
-      <h1>Welcome to app</h1>
+      <img
+        src="{{ORGANIZATION_LOGO}}"
+        alt="{{ORGANIZATION_NAME}} logo"
+        onerror="this.src='https://your-cdn.com/default-logo.png'"
+      />
+      <h1>Welcome to {{ORGANIZATION_NAME}}</h1>
     </div>
 
     <div class="content">
       <p>Hi {{FIRST_NAME}} {{LAST_NAME}},</p>
       <p>
-        You have been registered by a Super Admin as the administrator of a new organization on our platform. Below are the details of your registration:
+        You have been registered as the system administrator. Below are the details of your registration:
       </p>
 
       <h4>Temporary Login Credentials</h4>
@@ -129,22 +133,16 @@
         </ul>
       </div>
 
-      <h4>Organization Details</h4>
+      <h4>About Church </h4>
       <div class="organization">
         <ul>
-          <li><strong>Organization Name:</strong> {{ORGANIZATION_NAME}}</li>
+          <li><strong>Name:</strong> {{ORGANIZATION_NAME}}</li>
+        </ul>
+          <ul>
+          <li><strong>Address:</strong> {{ORGANIZATION_ADDRESS}}</li>
         </ul>
       </div>
 
-      <h4>Subscription Information</h4>
-      <div class="subscription">
-        <ul>
-          <li><strong>Plan:</strong> {{SUBSCRIPTION_PLAN}}</li>
-          <li><strong>Modules:</strong> {{MODULES_NAMES}}</li>
-          <li><strong>Price:</strong> {{SUBSCRIPTION_PRICE}}</li>
-          <li><strong>Status:</strong> {{SUBSCRIPTION_STATUS}}</li>
-        </ul>
-      </div>
 
       <p>
         Please use the button below to log in. We highly recommend changing your password immediately after your first login.
@@ -155,7 +153,7 @@
       </div>
 
       <p>If you have any questions or need help, feel free to reach out.</p>
-      <p>Best regards,<br><strong>The app Team</strong></p>
+      <p>Best regards,<br><strong>Platform administrator</strong></p>
     </div>
 
     <div class="footer">

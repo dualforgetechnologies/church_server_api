@@ -17,7 +17,6 @@ import { MailService } from '../transports/email/mail.service';
 
 import { CreateSuperAdminDto, CreateUserDto, SignupUserDto, UpdateUserDto } from '@/DTOs/user';
 
-
 export class UserService extends Service {
     private userRepo: UserRepository;
     private memberRepo: MemberRepository;
@@ -53,7 +52,7 @@ export class UserService extends Service {
      */
     async createUser(data: CreateUserDto, tenantId: string): Promise<AppResponse> {
         return this.run(async () => {
-            const { password, email, branchId,role,twoFactorEnabled, ...memberData } = data;
+            const { password, email, branchId, role, twoFactorEnabled, ...memberData } = data;
 
             const existingUser = await this.userRepo.findFirst({ email });
             if (existingUser) {
@@ -138,7 +137,7 @@ export class UserService extends Service {
 
             const passwordHash = await bcrypt.hash(data.password, 10);
 
-            const {password,...rest}=data
+            const { password, ...rest } = data;
             const user = await this.userRepo.create({
                 ...rest,
                 passwordHash,

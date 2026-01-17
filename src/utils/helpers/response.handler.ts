@@ -1,8 +1,8 @@
 import { Response } from 'express';
 import 'dotenv/config';
+import { AppConfig } from '@/config/app-config';
 import { AppResponse } from '@/types/types';
 import { StatusCodes, getReasonPhrase } from 'http-status-codes';
-import { AppConfig } from '@/config/app-config';
 
 export class ResponseHandler {
     private readonly environment: string;

@@ -23,7 +23,7 @@ export const AppConfig = {
         isProduction: getEnv('APP_NODE_ENV', 'development') === 'production',
         hostIp: getEnv('HOST_IP', ''),
         analyserSynIntervalMs: getEnv('ANALYSER_SYN_INTERVAL_MS', '10000'),
-        seed:Number.parseInt(getEnv('INIT_SEED','0'), 10), 
+        seed: Number.parseInt(getEnv('INIT_SEED', '0'), 10),
     },
 
     database: {

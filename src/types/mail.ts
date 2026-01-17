@@ -40,12 +40,14 @@ export interface NewOrganizationAccount extends BaseMailOptions {
     firstName: string;
     lastName: string;
     temPassword: string;
-    organizationName: string;
-    subscriptionPlan: string;
+    organizationName?: string;
+    subscriptionPlan?: string;
     modules: string[];
-    subscriptionPrice: string;
-    subscriptionStatus: string;
+    subscriptionPrice?: string;
+    subscriptionStatus?: string;
     expiryDate?: string;
+    address: string;
+    logo?: string;
 }
 
 export interface ResetAccountPassword extends BaseMailOptions {
@@ -105,5 +107,7 @@ export type MailTemplateParamKey =
     | 'MESSAGE_CONVERSATION_LINK'
     | 'SENDER_NAME'
     | 'SENDER_ROLE'
-    | 'MESSAGE_SNIPPET';
+    | 'MESSAGE_SNIPPET'
+    | 'ORGANIZATION_ADDRESS'
+    | 'ORGANIZATION_LOGO';
 export type TemplateParams = Partial<Record<MailTemplateParamKey, string | number>>;

@@ -19,36 +19,36 @@ export const baseUserFields = {
 };
 
 export const baseMemberFields = {
-  firstName: z.string().min(1),
-  lastName: z.string().min(1),
-  phone: z.string().optional(),
+    firstName: z.string().min(1),
+    lastName: z.string().min(1),
+    phone: z.string().optional(),
 
-  // Convert string to Date
-  dateOfBirth: z
-    .preprocess((val) => (typeof val === 'string' || val instanceof Date ? new Date(val) : val), z.date())
-    .optional(),
+    // Convert string to Date
+    dateOfBirth: z
+        .preprocess((val) => (typeof val === 'string' || val instanceof Date ? new Date(val) : val), z.date())
+        .optional(),
 
-  gender: zGender.optional(),
-  address: z.string().optional(),
-  city: z.string().optional(),
-  state: z.string().optional(),
-  country: z.string().optional(),
-  postalCode: z.string().optional(),
-  profession: z.string().optional(),
-  maritalStatus: zMaritalStatus.optional(),
+    gender: zGender.optional(),
+    address: z.string().optional(),
+    city: z.string().optional(),
+    state: z.string().optional(),
+    country: z.string().optional(),
+    postalCode: z.string().optional(),
+    profession: z.string().optional(),
+    maritalStatus: zMaritalStatus.optional(),
 
-  baptismDate: z
-    .preprocess((val) => (typeof val === 'string' || val instanceof Date ? new Date(val) : val), z.date())
-    .optional(),
+    baptismDate: z
+        .preprocess((val) => (typeof val === 'string' || val instanceof Date ? new Date(val) : val), z.date())
+        .optional(),
 
-  preferredLanguage: z.string().default('en'),
-  profilePhoto: z.string().url().optional(),
-  biometricId: z.string().optional(),
-  privacySettings: z.record(z.any()).optional(),
-  notificationSettings: z.record(z.any()).optional(),
-  cellId: z.string().optional(),
-  ministryId: z.string().optional(),
-  departmentId: z.string().optional(),
+    preferredLanguage: z.string().default('en'),
+    profilePhoto: z.string().url().optional(),
+    biometricId: z.string().optional(),
+    privacySettings: z.record(z.any()).optional(),
+    notificationSettings: z.record(z.any()).optional(),
+    cellId: z.string().optional(),
+    ministryId: z.string().optional(),
+    departmentId: z.string().optional(),
 };
 
 export const signupUserDto = z.object({

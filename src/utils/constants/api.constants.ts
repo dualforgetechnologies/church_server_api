@@ -1,5 +1,4 @@
-export const apiConstants = {
-};
+export const apiConstants = {};
 
 export const AGG_PERIODS = {
     DAILY: 'daily',
