@@ -389,6 +389,11 @@ export class TenantService extends Service {
                     role: UserRole.TENANT_ADMIN,
                     status: UserStatus.ACTIVE,
                     twoFactorEnabled: twoFactorEnabled ?? false,
+                    tenant: {
+                        connect: {
+                            id: tenant.id,
+                        },
+                    },
                 });
 
                 member = await this.memberRepo.create({
