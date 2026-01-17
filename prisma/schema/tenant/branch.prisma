@@ -18,7 +18,7 @@ model Branch {
   timezone String?
 
   // Management
-  pastorId  String? // Branch pastor
+  pastorId  String?      @unique
   status    BranchStatus @default(ACTIVE)
   isPrimary Boolean      @default(false)
 
@@ -37,13 +37,17 @@ model Branch {
   deletedAt   DateTime?
 
   // Relations
-  tenant      Tenant                 @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  parent      Branch?                @relation("BranchHierarchy", fields: [parentBranchId], references: [id])
-  children    Branch[]               @relation("BranchHierarchy")
-  members     Member[]
+  tenant   Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  pastor   Member?  @relation("BranchPastor", fields: [pastorId], references: [id], onDelete: SetNull)
+  parent   Branch?  @relation("BranchHierarchy", fields: [parentBranchId], references: [id])
+  children Branch[] @relation("BranchHierarchy")
+  members  Member[] @relation("BranchMembers")
+
   users       UserBranchAssignment[]
   departments Department[]
   Community   Community[]
+  User        User?                  @relation(fields: [userId], references: [id])
+  userId      String?
 
   @@unique([tenantId, code])
   @@unique([tenantId, slug])

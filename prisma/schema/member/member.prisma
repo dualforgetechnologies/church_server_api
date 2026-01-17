@@ -46,11 +46,12 @@ model Member {
   deletedById String?
   deletedAt   DateTime?
 
-  tenant       Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  branch       Branch?     @relation(fields: [branchId], references: [id], onDelete: Cascade)
-  user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  Department   Department? @relation(fields: [departmentId], references: [id])
-  departmentId String?
+  tenant         Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  branch         Branch?     @relation("BranchMembers", fields: [branchId], references: [id], onDelete: SetNull)
+  pastoredBranch Branch?     @relation("BranchPastor")
+  user           User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  Department     Department? @relation(fields: [departmentId], references: [id])
+  departmentId   String?
 
   @@unique([tenantId, memberNumber])
   @@index([tenantId])

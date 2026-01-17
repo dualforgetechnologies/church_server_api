@@ -106,19 +106,17 @@ export class BranchService extends Service {
      * @param data - Branch creation DTO
      * @returns Created branch
      */
-    private async createBranchInternal(
-        data: CreateBranchDto | CreatePrimaryBranchDto | CreateChildBranchDto,
-        tenantId: string,
-    ): Promise<Branch> {
+    private async createBranchInternal(data: CreateBranchDto | Branch, tenantId: string): Promise<Branch> {
         await this.validateTenantAndParent(tenantId, (data as CreateChildBranchDto).parentBranchId);
         await this.ensureUniqueBranchFields(tenantId, data.code, data.slug);
 
-        const { parentBranchId, ...rest } = data;
+        const { parentBranchId, pastorId, ...rest } = data;
 
         const branchData: Prisma.BranchCreateInput = {
             ...rest,
             tenant: { connect: { id: tenantId } },
             ...(parentBranchId ? { parent: { connect: { id: parentBranchId } } } : {}),
+            ...(pastorId && { pastor: { connect: { id: pastorId } } }),
         };
 
         return this.branchRepo.create(branchData);
@@ -166,7 +164,7 @@ export class BranchService extends Service {
      */
     async createChildBranch(data: CreateChildBranchDto, tenantId: string): Promise<AppResponse> {
         return this.run(async () => {
-            const branch = await this.createBranchInternal(data, tenantId);
+            const branch = await this.createBranchInternal(data as CreateBranchDto, tenantId);
             return this.success({
                 data: branch,
                 message: 'Child branch created successfully',
@@ -391,10 +389,20 @@ export class BranchService extends Service {
                 [sortBy]: sortOrder,
             };
 
-            const res = await this.branchRepo.findAll(where, orderBy, {
-                page,
-                limit,
-            });
+            const res = await this.branchRepo.findAll<Prisma.BranchInclude>(
+                where,
+                orderBy,
+                {
+                    page,
+                    limit,
+                },
+                {
+                    include: {
+                        members: true,
+                        pastor: true,
+                    },
+                },
+            );
             return this.success({
                 data: res.data,
                 pagination: res.pagination,
