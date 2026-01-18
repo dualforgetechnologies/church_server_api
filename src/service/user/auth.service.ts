@@ -1,4 +1,4 @@
-import { Prisma, PrismaClient, User, UserRole, UserStatus } from '@prisma/client';
+import { Prisma, PrismaClient, Tenant, User, UserRole, UserStatus } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 import { Request } from 'express';
 import { StatusCodes } from 'http-status-codes';
@@ -11,11 +11,13 @@ import { ChangePasswordDto } from '@/DTOs/user';
 import { AppConfig } from '@/config/app-config';
 import Logger from '@/config/logger';
 import { db } from '@/db/db';
+import { TenantRepository } from '@/repository/tenant/tenant.repository';
 import { UserRepository } from '@/repository/user.repository';
 import { MailService } from '@/service/transports/email/mail.service';
 import { JwtPayloadT, ResetPasswordJwtPayload, VerifyAccountJwtPayload } from '@/types/account';
 import { AppResponse } from '@/types/types';
 import { getExpiryDateFromNow } from '@/utils/common';
+import { DEFAULT_CHURCH_LOGO } from '@/utils/constants/common';
 import { JwtService } from '@/utils/jwtService';
 import { sanitizeAccount } from '@/utils/sanitizers/account';
 import { StringValue } from 'ms';
@@ -26,6 +28,7 @@ export class AuthService extends Service {
     private readonly jwtService: JwtService;
     private readonly mailService: MailService;
     private readonly userRepo: UserRepository;
+    private readonly tenantRepo: TenantRepository;
 
     constructor() {
         super(new Logger('AuthService', 'AUTH_SERVICE'));
@@ -33,6 +36,7 @@ export class AuthService extends Service {
         this.jwtService = new JwtService();
         this.mailService = new MailService();
         this.userRepo = new UserRepository(db);
+        this.tenantRepo = new TenantRepository(db);
     }
 
     // ------------------------------
@@ -115,12 +119,16 @@ export class AuthService extends Service {
 
     async requestPasswordReset(dto: ForgotPasswordDto): Promise<AppResponse> {
         return this.run(async () => {
+            let tenant: Tenant | null = null;
             const user = await this.userRepo.findFirst({ email: dto.email });
 
             if (!user) {
                 return this.success({
                     message: 'Reset password instructions sent if the email is registered.',
                 });
+            }
+            if (user?.tenantId) {
+                tenant = await this.tenantRepo.findById({ id: user.tenantId });
             }
             const expiry = getExpiryDateFromNow(AppConfig.jwt.resetLinkExpiresIn as StringValue);
             const token = this.jwtService.generateAccessToken(
@@ -135,6 +143,8 @@ export class AuthService extends Service {
                 accountType: 'USER',
                 expiryAt: expiry.humanReadable,
                 to: user.email,
+                organizationName: tenant?.name ?? '',
+                logo: tenant?.logo ?? DEFAULT_CHURCH_LOGO,
             });
 
             return this.success({

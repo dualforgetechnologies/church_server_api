@@ -5,7 +5,7 @@ export enum EmailTemplateName {
     USER_ACCOUNT_VERIFICATION = 'user-account-verification',
     ACCOUNT_VERIFICATION_REQUEST = 'new-account-activation-request',
     RESET_PASSWORD = 'reset-password',
-    NEW_EMPLOYEE_ACCOUNT = 'new-employee-account',
+    NEW_MEMBER_ACCOUNT = 'new-member-account',
     ACTIVATE_USER_ACCOUNT = 'activate-user-account',
     SUPER_ADMIN_REGISTER_NEW_ORGANIZATION = 'super-admin-register-organization',
     USER_COMPLETED_ONBOARDING = 'user-completed-onboarding',
@@ -18,6 +18,8 @@ export interface BaseMailOptions {
     from?: string;
     to: string;
     subject?: string;
+    logo: string;
+    organizationName: string;
 }
 
 export interface ActivateAccount extends BaseMailOptions {
@@ -40,14 +42,12 @@ export interface NewOrganizationAccount extends BaseMailOptions {
     firstName: string;
     lastName: string;
     temPassword: string;
-    organizationName?: string;
     subscriptionPlan?: string;
     modules: string[];
     subscriptionPrice?: string;
     subscriptionStatus?: string;
     expiryDate?: string;
     address: string;
-    logo?: string;
 }
 
 export interface ResetAccountPassword extends BaseMailOptions {

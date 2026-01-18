@@ -1,4 +1,4 @@
-import { MemberStatus, MemberType, PrismaClient, UserRole, UserStatus } from '@prisma/client';
+import { Member, MemberStatus, MemberType, PrismaClient, User, UserRole, UserStatus } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 import { StatusCodes } from 'http-status-codes';
 
@@ -50,69 +50,82 @@ export class UserService extends Service {
      * @param data - User creation payload
      * @returns Standardized application response
      */
-    async createUser(data: CreateUserDto, tenantId: string): Promise<AppResponse> {
+
+    async createTenantUser(data: CreateUserDto, tenantId: string): Promise<AppResponse> {
         return this.run(async () => {
             const { password, email, branchId, role, twoFactorEnabled, ...memberData } = data;
+            const prisma = this.userRepo.prisma;
 
-            const existingUser = await this.userRepo.findFirst({ email });
-            if (existingUser) {
-                return this.error('Email already in use', StatusCodes.CONFLICT);
-            }
+            let user: User | null = null;
+            let member: Member | null = null;
 
-            if (tenantId) {
-                const tenantExists = await this.userRepo.prisma.tenant.findUnique({
+            try {
+                const existingUser = await this.userRepo.findFirst({ email });
+                if (existingUser) {
+                    throw new Error('Email already in use');
+                }
+
+                const tenantExists = await prisma.tenant.findUnique({
                     where: { id: tenantId },
                 });
                 if (!tenantExists) {
-                    return this.error('Tenant not found', StatusCodes.BAD_REQUEST);
+                    throw new Error('Tenant not found');
                 }
+
+                const tempPassword = generateTempKey(email, '', 6);
+                const passwordHash = await bcrypt.hash(tempPassword, 10);
+
+                user = await this.userRepo.create({
+                    email,
+                    passwordHash,
+                    role: role ?? UserRole.MEMBER,
+                    status: UserStatus.ACTIVE,
+                    twoFactorEnabled: twoFactorEnabled ?? false,
+                    ...(tenantId && { tenant: { connect: { id: tenantId } } }),
+                });
+
+                member = await this.memberRepo.create({
+                    ...memberData,
+                    user: { connect: { id: user.id } },
+                    tenant: { connect: { id: tenantId! } },
+                    ...(branchId && { branch: { connect: { id: branchId } } }),
+                    memberNumber: `M-${Date.now()}`,
+                    memberType: MemberType.MEMBER,
+                    memberStatus: MemberStatus.ACTIVE,
+                    email,
+                });
+
+                // Update user with member relation
+                await this.userRepo.update({ id: user.id }, { member: { connect: { id: member.id } } });
+
+                // Send credentials email
+                await this.mailService.sendNewMemberCredentialsMail({
+                    to: email,
+                    email,
+                    temPassword: tempPassword,
+                    organizationName: tenantExists.name,
+                    role: user.role,
+                    firstName: memberData.firstName ?? '',
+                    lastName: memberData.lastName ?? '',
+                    logo: tenantExists.logo ?? '',
+                });
+
+                return this.success({
+                    data: sanitizeAccount(user),
+                    message: 'User created successfully',
+                    code: 201,
+                });
+            } catch (error) {
+                // COMPENSATING ACTIONS (ROLLBACK)
+                if (member) {
+                    await prisma.member.delete({ where: { id: member.id } }).catch(() => undefined);
+                }
+                if (user) {
+                    await prisma.user.delete({ where: { id: user.id } }).catch(() => undefined);
+                }
+
+                return this.error((error as Error).message || 'Failed to create user');
             }
-
-            const tempPassword = password ?? generateTempKey(email, '', 6);
-            const passwordHash = await bcrypt.hash(tempPassword, 10);
-
-            const userData = {
-                email,
-                passwordHash,
-                role: role ?? UserRole.MEMBER,
-                status: UserStatus.ACTIVE,
-                twoFactorEnabled: data.twoFactorEnabled ?? false,
-                ...(tenantId && { tenant: { connect: { id: tenantId } } }),
-            };
-
-            const memberPayload = {
-                ...memberData,
-                userId: '',
-                tenantId: tenantId!,
-                branchId,
-                memberNumber: `M-${Date.now()}`,
-                memberType: MemberType.MEMBER,
-                memberStatus: MemberStatus.ACTIVE,
-                email,
-            };
-
-            const user = await this.userRepo.prisma.$transaction(async (tx) => {
-                const createdUser = await tx.user.create({ data: userData });
-                memberPayload.userId = createdUser.id;
-                await tx.member.create({ data: memberPayload });
-                return createdUser;
-            });
-
-            await this.mailService.sendNewEmployeeCredentialsMail({
-                to: user.email,
-                email: user.email,
-                temPassword: tempPassword,
-                organizationName: 'UNKNOWN',
-                role: user.role,
-                firstName: memberData.firstName ?? '',
-                lastName: memberData.lastName ?? '',
-            });
-
-            return this.success({
-                data: sanitizeAccount(user),
-                message: 'User created successfully',
-                code: StatusCodes.CREATED,
-            });
         }, 'Failed to create user');
     }
 
@@ -167,67 +180,96 @@ export class UserService extends Service {
      */
     async signupUser(data: SignupUserDto, tenantId: string): Promise<AppResponse> {
         return this.run(async () => {
-            const { password, email, branchId, ...memberData } = data;
+            const prisma = this.userRepo.prisma;
 
-            const exists = await this.userRepo.findFirst({ email });
-            if (exists?.emailVerified) {
-                return this.error('Email already in use', StatusCodes.CONFLICT);
+            let user: User | null = null;
+            let member: Member | null = null;
+
+            try {
+                const { password, email, branchId, ...memberData } = data;
+
+                // Check if user already exists
+                const existingUser = await this.userRepo.findFirst({ email });
+                if (existingUser?.emailVerified) {
+                    throw new Error('Email already in use');
+                }
+
+                // Verify tenant exists
+                const tenantExists = await prisma.tenant.findUnique({ where: { id: tenantId } });
+                if (!tenantExists) {
+                    throw new Error('Tenant not found');
+                }
+
+                const passwordHash: string = await bcrypt.hash(password, 10);
+
+                // Create user
+                user = await this.userRepo.create({
+                    email,
+                    passwordHash,
+                    role: data.role ?? UserRole.MEMBER,
+                    status: UserStatus.PENDING,
+                    tenant: {
+                        connect: { id: tenantId },
+                    },
+                });
+
+                // Create member
+                member = await this.memberRepo.create({
+                    ...memberData,
+                    user: { connect: { id: user.id } },
+                    tenant: { connect: { id: tenantId } },
+                    ...(branchId && { branch: { connect: { id: branchId } } }),
+                    memberNumber: `M-${Date.now()}`,
+                    memberType: MemberType.MEMBER,
+                    memberStatus: MemberStatus.ACTIVE,
+                    email,
+                });
+
+                // Link member to user
+                if (member?.id) {
+                    await this.userRepo.update({ id: user.id }, { member: { connect: { id: member.id } } });
+                }
+
+                // Send account verification email
+                const expiryMeta = getExpiryDateFromNow(AppConfig.jwt.verifyAccountExpiresIn as StringValue);
+
+                const token = this.jwtService.generateAccessToken(
+                    {
+                        sub: user.id,
+                        email: user.email,
+                        role: user.role,
+                        isNew: true,
+                        type: 'USER',
+                    },
+                    expiryMeta.duration,
+                );
+
+                await this.mailService.activateNewAccountRequest({
+                    token,
+                    to: user.email,
+                    firstName: memberData.firstName ?? '',
+                    lastName: memberData.lastName ?? '',
+                    expiryAt: expiryMeta.humanReadable,
+                    logo: tenantExists.logo ?? '',
+                    organizationName: tenantExists.name,
+                });
+
+                return this.success({
+                    data: { user, member, tenant: tenantExists },
+                    message: 'Signup successful, please verify your account',
+                    code: 201,
+                });
+            } catch (error) {
+                // COMPENSATING ACTIONS (ROLLBACK)
+                if (member) {
+                    await prisma.member.delete({ where: { id: member.id } }).catch(() => undefined);
+                }
+                if (user) {
+                    await prisma.user.delete({ where: { id: user.id } }).catch(() => undefined);
+                }
+
+                return this.error((error as Error).message || 'Failed to signup user');
             }
-
-            const passwordHash = await bcrypt.hash(password, 10);
-
-            const userData = {
-                email,
-                passwordHash,
-                role: data.role ?? UserRole.MEMBER,
-                status: UserStatus.PENDING,
-                ...(tenantId && { tenant: { connect: { id: tenantId } } }),
-            };
-
-            const memberPayload = {
-                ...memberData,
-                userId: '',
-                tenantId: tenantId!,
-                branchId,
-                memberNumber: `M-${Date.now()}`,
-                memberType: MemberType.MEMBER,
-                memberStatus: MemberStatus.ACTIVE,
-                email,
-            };
-
-            const user = await this.userRepo.prisma.$transaction(async (tx) => {
-                const createdUser = await tx.user.create({ data: userData });
-                memberPayload.userId = createdUser.id;
-                await tx.member.create({ data: memberPayload });
-                return createdUser;
-            });
-
-            const expiryMeta = getExpiryDateFromNow(AppConfig.jwt.verifyAccountExpiresIn as StringValue);
-
-            const token = this.jwtService.generateAccessToken(
-                {
-                    sub: user.id,
-                    email: user.email,
-                    role: user.role,
-                    isNew: true,
-                    type: 'USER',
-                },
-                expiryMeta.duration,
-            );
-
-            await this.mailService.activateNewAccountRequest({
-                token,
-                to: user.email,
-                firstName: memberData.firstName ?? '',
-                lastName: memberData.lastName ?? '',
-                expiryAt: expiryMeta.humanReadable,
-            });
-
-            return this.success({
-                data: sanitizeAccount(user),
-                message: 'Signup successful, please verify your account',
-                code: StatusCodes.CREATED,
-            });
         }, 'Failed to signup user');
     }
 

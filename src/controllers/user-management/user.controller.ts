@@ -28,7 +28,7 @@ export class UserController extends Controller {
         try {
             const payload = req.body as CreateUserDto;
             const tenantId = req?.tenantId;
-            const result = await this.userService.createUser(payload, tenantId);
+            const result = await this.userService.createTenantUser(payload, tenantId);
             return this.response(res, result);
         } catch (error) {
             return this.error({

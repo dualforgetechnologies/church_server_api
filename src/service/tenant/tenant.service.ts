@@ -431,7 +431,7 @@ export class TenantService extends Service {
                     lastName: memberData.lastName ?? '',
                     modules: [],
                     address: tenant.address ?? 'Not stated',
-                    logo: tenant.logo ?? undefined,
+                    logo: tenant.logo ?? '',
                 });
 
                 return this.success({

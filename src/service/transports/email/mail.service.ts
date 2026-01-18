@@ -6,6 +6,7 @@ import { MailClient } from './client';
 
 import { EmailTemplateName, NewUserAccount, ResetAccountPassword, TemplateParams } from '@/types/mail';
 import { DEFAULT_CHURCH_LOGO } from '@/utils/constants/common';
+import { UserRole } from '@prisma/client';
 
 export class MailService extends MailClient {
     private generateMail(templateName: EmailTemplateName, params: TemplateParams): string {
@@ -28,6 +29,8 @@ export class MailService extends MailClient {
             CONFIRMATION_LINK: `${AppConfig.client.activationUrl}?token=${params.token}`,
             FIRST_NAME: params.firstName,
             LAST_NAME: params.lastName,
+            ORGANIZATION_LOGO: params.logo,
+            ORGANIZATION_NAME: params.organizationName,
         });
 
         return await this.sendMail({
@@ -37,15 +40,16 @@ export class MailService extends MailClient {
         });
     };
 
-    sendNewEmployeeCredentialsMail = async (params: NewUserAccount): Promise<boolean> => {
-        const html = this.generateMail(EmailTemplateName.ACTIVATE_USER_ACCOUNT, {
+    sendNewMemberCredentialsMail = async (params: NewUserAccount): Promise<boolean> => {
+        const html = this.generateMail(EmailTemplateName.NEW_MEMBER_ACCOUNT, {
             FIRST_NAME: params.firstName,
             LAST_NAME: params.lastName,
             USER_EMAIL: params.email,
             USER_TEMP_PASSWORD: params.temPassword,
             LOGIN_LINK: AppConfig.client.loginUrl,
             ORGANIZATION_NAME: params.organizationName,
-            ROLE_NAME: params.role,
+            ROLE_NAME: params.role ?? UserRole.MEMBER,
+            ORGANIZATION_LOGO: params.logo,
         });
 
         return this.sendMail({
@@ -88,6 +92,7 @@ export class MailService extends MailClient {
             SUBSCRIPTION_PRICE: params.subscriptionPrice,
             SUBSCRIPTION_STATUS: params.subscriptionStatus,
             EXPIRY_DATE: params.expiryDate,
+            ORGANIZATION_LOGO: params.logo,
         });
 
         return this.sendMail({
@@ -103,6 +108,8 @@ export class MailService extends MailClient {
             VALID_UNTIL_DATE: params.expiryAt,
             RESET_LINK: `${AppConfig.client.resetPasswordUrl}?token=${params.token}`,
             ACCOUNT_TYPE: params.accountType,
+            ORGANIZATION_LOGO: params.logo,
+            ORGANIZATION_NAME: params.organizationName,
         });
 
         return this.sendMail({

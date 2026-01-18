@@ -17,7 +17,12 @@ userRouter.post(
 
 userRouter.post('/super-admin', validateBodyDto(createSuperAdminDto), userController.createSuperAdmin);
 
-userRouter.post('/signup', validateBodyDto(signupUserDto), userController.signupUser);
+userRouter.post(
+    '/signup',
+    tenantMiddleware({ isPublicRequest: true }),
+    validateBodyDto(signupUserDto),
+    userController.signupUser,
+);
 userRouter.get('/:id', authJWT.authenticate, userController.getUserById);
 
 userRouter.put(
