@@ -2,7 +2,7 @@ paths:
   /api/v1/users:
     post:
       tags: [Users]
-      summary: Create a new user (Admin only)
+      summary: Create a new user -member under a church (Admin only)
       security:
         - bearerAuth: []
       requestBody:
@@ -236,6 +236,9 @@ components:
         - type: object
           properties:
             status: { $ref: '#/components/schemas/UserStatus' }
+            roleId: { type: string, nullable: true }
+            roleExpiresAt: { type: string, format: date, nullable: true }
+
 
     UpdateUserDto:
       allOf:

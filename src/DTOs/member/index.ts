@@ -1,6 +1,6 @@
 import { Gender, MaritalStatus, MemberStatus, MemberType } from '@prisma/client';
 import { z } from 'zod';
-import { commonPaginationQueryDto } from '../common';
+import { commonPaginationQueryDto, zodDate } from '../common';
 
 export const zGender = z.nativeEnum(Gender);
 export const zMaritalStatus = z.nativeEnum(MaritalStatus);
@@ -23,7 +23,7 @@ export const baseMemberFields = {
 export const createMemberDto = z.object({
     ...baseMemberFields,
 
-    dateOfBirth: z.date().optional(),
+    dateOfBirth: zodDate(),
     gender: zGender.optional(),
 
     address: z.string().optional(),
@@ -35,8 +35,8 @@ export const createMemberDto = z.object({
     profession: z.string().optional(),
     maritalStatus: zMaritalStatus.optional(),
 
-    baptismDate: z.date().optional(),
-    joinDate: z.date().optional(),
+    baptismDate: zodDate(),
+    joinDate: zodDate(),
 
     memberType: zMemberType.default(MemberType.MEMBER),
     memberStatus: zMemberStatus.default(MemberStatus.ACTIVE),
@@ -60,7 +60,7 @@ export const createGuestMemberDto = z.object({
     memberType: z.literal(MemberType.GUEST),
     memberStatus: z.literal(MemberStatus.ACTIVE),
 
-    joinDate: z.date().optional(),
+    joinDate: zodDate(),
 });
 
 export const updateMemberDto = z.object({
@@ -71,7 +71,7 @@ export const updateMemberDto = z.object({
     email: z.string().email().optional(),
     phone: z.string().optional(),
 
-    dateOfBirth: z.date().optional(),
+    dateOfBirth: zodDate(),
     gender: zGender.optional(),
 
     address: z.string().optional(),
@@ -91,7 +91,7 @@ export const updateMemberDto = z.object({
     departmentId: z.string().optional(),
     biometricId: z.string().optional(),
 
-    baptismDate: z.date().optional(),
+    baptismDate: zodDate(),
     preferredLanguage: z.string().optional(),
     profilePhoto: z.string().url().optional(),
 

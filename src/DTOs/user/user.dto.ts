@@ -1,5 +1,6 @@
 import { Gender, MaritalStatus, MemberStatus, MemberType, UserRole, UserStatus } from '@prisma/client';
 import { z } from 'zod';
+import { zodDate } from '../common';
 
 /** ---------------------------
  * Enums
@@ -25,7 +26,7 @@ export const baseMemberFields = {
 
     // Convert string to Date
     dateOfBirth: z
-        .preprocess((val) => (typeof val === 'string' || val instanceof Date ? new Date(val) : val), z.date())
+        .preprocess((val) => (typeof val === 'string' || val instanceof Date ? new Date(val) : val), z.coerce.date())
         .optional(),
 
     gender: zGender.optional(),
@@ -38,7 +39,7 @@ export const baseMemberFields = {
     maritalStatus: zMaritalStatus.optional(),
 
     baptismDate: z
-        .preprocess((val) => (typeof val === 'string' || val instanceof Date ? new Date(val) : val), z.date())
+        .preprocess((val) => (typeof val === 'string' || val instanceof Date ? new Date(val) : val), z.coerce.date())
         .optional(),
 
     preferredLanguage: z.string().default('en'),
@@ -68,6 +69,9 @@ export const createUserDto = z.object({
     password: z.string().min(6).optional(),
     role: zUserRole.default(UserRole.MEMBER),
     twoFactorEnabled: z.boolean().optional(),
+
+    roleId: z.string().optional(),
+    roleExpiresAt: zodDate(),
 });
 
 // Admin creates a super admin

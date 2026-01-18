@@ -16,12 +16,15 @@ import { Service } from '../base/service.base';
 import { MailService } from '../transports/email/mail.service';
 
 import { CreateSuperAdminDto, CreateUserDto, SignupUserDto, UpdateUserDto } from '@/DTOs/user';
+import { RoleRepository, UserRoleAssignmentRepository } from '@/repository/role.repository';
 
 export class UserService extends Service {
     private userRepo: UserRepository;
     private memberRepo: MemberRepository;
     private mailService: MailService;
     private jwtService: JwtService;
+    private userRoleRepo: UserRoleAssignmentRepository;
+    private roleRepo: RoleRepository;
 
     /**
      * Initializes the UserService with required repositories
@@ -35,10 +38,12 @@ export class UserService extends Service {
         this.memberRepo = new MemberRepository(prisma);
         this.mailService = new MailService();
         this.jwtService = new JwtService();
+        this.userRoleRepo = new UserRoleAssignmentRepository(this.prisma);
+        this.roleRepo = new RoleRepository(this.prisma);
     }
 
     /**
-     * Creates a new user by an administrator.
+     * Creates a new user under a church by an administrator.
      *
      * This operation:
      * - Validates email uniqueness
@@ -51,13 +56,25 @@ export class UserService extends Service {
      * @returns Standardized application response
      */
 
-    async createTenantUser(data: CreateUserDto, tenantId: string): Promise<AppResponse> {
+    async createTenantUser(data: CreateUserDto, tenantId: string, actingUserId: string): Promise<AppResponse> {
         return this.run(async () => {
-            const { password, email, branchId, role, twoFactorEnabled, ...memberData } = data;
+            const {
+                password,
+                email,
+                branchId,
+                role,
+                twoFactorEnabled,
+
+                roleId,
+                roleExpiresAt,
+
+                ...memberData
+            } = data;
             const prisma = this.userRepo.prisma;
 
             let user: User | null = null;
             let member: Member | null = null;
+            let userRoleId: string | null = null;
 
             try {
                 const existingUser = await this.userRepo.findFirst({ email });
@@ -89,11 +106,31 @@ export class UserService extends Service {
                     user: { connect: { id: user.id } },
                     tenant: { connect: { id: tenantId! } },
                     ...(branchId && { branch: { connect: { id: branchId } } }),
-                    memberNumber: `M-${Date.now()}`,
+                    memberNumber: `M-${crypto.randomUUID().slice(0, 8).toUpperCase()}`,
                     memberType: MemberType.MEMBER,
                     memberStatus: MemberStatus.ACTIVE,
                     email,
                 });
+
+                if (roleId) {
+                    const roleExists = await this.roleRepo.findById({
+                        id: roleId,
+                        tenantId,
+                    });
+
+                    if (!roleExists) {
+                        throw new Error(`No role found with id ${roleId}`);
+                    }
+
+                    const userRole = await this.userRoleRepo.create({
+                        role: { connect: { id: roleId } },
+                        user: { connect: { id: user.id } },
+                        assignedBy: actingUserId,
+                        expiresAt: roleExpiresAt,
+                    });
+
+                    userRoleId = userRole.id;
+                }
 
                 // Update user with member relation
                 await this.userRepo.update({ id: user.id }, { member: { connect: { id: member.id } } });
@@ -195,7 +232,9 @@ export class UserService extends Service {
                 }
 
                 // Verify tenant exists
-                const tenantExists = await prisma.tenant.findUnique({ where: { id: tenantId } });
+                const tenantExists = await prisma.tenant.findUnique({
+                    where: { id: tenantId },
+                });
                 if (!tenantExists) {
                     throw new Error('Tenant not found');
                 }

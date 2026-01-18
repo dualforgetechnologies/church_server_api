@@ -66,3 +66,18 @@ export {
     type CommonPaginationQueryDto,
     type ReqParamsCustomerIdDto,
 };
+
+export const zodDate = (required = false) => {
+    const base = z.preprocess(
+        (val) => {
+            if (typeof val === 'string' || val instanceof Date) {
+                const date = new Date(val);
+                return Number.isNaN(date.getTime()) ? undefined : date;
+            }
+            return val;
+        },
+        z.coerce.date({ required_error: 'Date is required' }),
+    );
+
+    return required ? base : base.optional();
+};

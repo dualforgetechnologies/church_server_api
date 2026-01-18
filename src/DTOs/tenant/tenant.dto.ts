@@ -1,6 +1,6 @@
 import { SubscriptionTier, TenantStatus } from '@prisma/client';
 import { z } from 'zod';
-import { commonPaginationQueryDto } from '../common';
+import { commonPaginationQueryDto, zodDate } from '../common';
 import { createUserDto } from '../user';
 
 export const zTenantStatus = z.nativeEnum(TenantStatus);
@@ -31,7 +31,7 @@ export const createTenantDto = z.object({
     defaultCurrency: z.string().default('USD'),
 
     subscriptionTier: zSubscriptionTier.default(SubscriptionTier.BASIC),
-    subscriptionExpiresAt: z.date().optional(),
+    subscriptionExpiresAt: zodDate(),
 
     isBranchEnabled: z.boolean().default(true),
     status: zTenantStatus.default(TenantStatus.PENDING),
@@ -42,7 +42,7 @@ export const createTrialTenantDto = z.object({
 
     subscriptionTier: z.literal(SubscriptionTier.FREE),
     status: z.literal(TenantStatus.TRIAL),
-    subscriptionExpiresAt: z.date(),
+    subscriptionExpiresAt: z.coerce.date(),
 });
 
 export const updateTenantDto = z.object({
@@ -70,11 +70,11 @@ export const updateTenantDto = z.object({
 
 export const updateTenantSubscriptionDto = z.object({
     subscriptionTier: zSubscriptionTier,
-    subscriptionExpiresAt: z.date().optional(),
+    subscriptionExpiresAt: zodDate(),
 });
 
 export const extendTenantSubscriptionDto = z.object({
-    subscriptionExpiresAt: z.date(),
+    subscriptionExpiresAt: z.coerce.date(),
 });
 
 export const updateTenantStatusDto = z.object({

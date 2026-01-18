@@ -1,6 +1,6 @@
 import { PermissionAction, PermissionScope, UserRole } from '@prisma/client';
 import { z } from 'zod';
-import { commonPaginationQueryDto } from '../common';
+import { commonPaginationQueryDto, zodDate } from '../common';
 
 export const zPermissionScope = z.nativeEnum(PermissionScope);
 export const zPermissionAction = z.nativeEnum(PermissionAction);
@@ -57,14 +57,14 @@ export const assignPermissionToRoleDto = z.object({
     branchScope: zPermissionScope.default(PermissionScope.ALL),
     departmentScope: zPermissionScope.default(PermissionScope.ALL),
     customConditions: z.record(z.any()).optional(),
-    expiresAt: z.date().optional(),
+    expiresAt: zodDate(),
 });
 
 export const updateRolePermissionDto = z.object({
     branchScope: zPermissionScope.optional(),
     departmentScope: zPermissionScope.optional(),
     customConditions: z.record(z.any()).optional(),
-    expiresAt: z.date().optional(),
+    expiresAt: zodDate(),
     isActive: z.boolean().optional(),
 });
 
@@ -72,7 +72,7 @@ export const assignRoleToUserDto = z.object({
     userId: z.string(),
     roleId: z.string(),
     assignedBy: z.string(),
-    expiresAt: z.date().optional(),
+    expiresAt: zodDate(),
 });
 
 export const grantUserPermissionOverrideDto = z.object({
@@ -80,7 +80,7 @@ export const grantUserPermissionOverrideDto = z.object({
     permissionId: z.string().array(),
     grantedBy: z.string(),
     reason: z.string().optional(),
-    expiresAt: z.date().optional(),
+    expiresAt: zodDate(),
 });
 
 export const roleListQueryDto = commonPaginationQueryDto.extend({
