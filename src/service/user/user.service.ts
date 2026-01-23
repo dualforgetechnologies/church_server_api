@@ -1,4 +1,15 @@
-import { Member, MemberStatus, MemberType, PrismaClient, User, UserRole, UserStatus } from '@prisma/client';
+import {
+    Community,
+    Member,
+    MemberStatus,
+    MemberType,
+    PrismaClient,
+    ProfessionType,
+    Tenant,
+    User,
+    UserRole,
+    UserStatus,
+} from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 import { StatusCodes } from 'http-status-codes';
 
@@ -7,7 +18,7 @@ import Logger from '@/config/logger';
 import { MemberRepository } from '@/repository/member.repository';
 import { UserRepository } from '@/repository/user.repository';
 import { AppResponse } from '@/types/types';
-import { getExpiryDateFromNow } from '@/utils/common';
+import { getExpiryDateFromNow, toMonthString } from '@/utils/common';
 import { generateTempKey } from '@/utils/generateTemKey';
 import { JwtService } from '@/utils/jwtService';
 import { sanitizeAccount } from '@/utils/sanitizers/account';
@@ -16,7 +27,9 @@ import { Service } from '../base/service.base';
 import { MailService } from '../transports/email/mail.service';
 
 import { CreateSuperAdminDto, CreateUserDto, SignupUserDto, UpdateUserDto } from '@/DTOs/user';
+import { CommunityRepository } from '@/repository/community/community.repository';
 import { RoleRepository, UserRoleAssignmentRepository } from '@/repository/role.repository';
+import { CommunityMemberService } from '../community/communityMember.service';
 
 export class UserService extends Service {
     private userRepo: UserRepository;
@@ -25,6 +38,8 @@ export class UserService extends Service {
     private jwtService: JwtService;
     private userRoleRepo: UserRoleAssignmentRepository;
     private roleRepo: RoleRepository;
+    private communityRepo: CommunityRepository;
+    private communityMemberService: CommunityMemberService;
 
     /**
      * Initializes the UserService with required repositories
@@ -40,6 +55,8 @@ export class UserService extends Service {
         this.jwtService = new JwtService();
         this.userRoleRepo = new UserRoleAssignmentRepository(this.prisma);
         this.roleRepo = new RoleRepository(this.prisma);
+        this.communityRepo = new CommunityRepository(prisma);
+        this.communityMemberService = new CommunityMemberService(prisma);
     }
 
     /**
@@ -56,7 +73,12 @@ export class UserService extends Service {
      * @returns Standardized application response
      */
 
-    async createTenantUser(data: CreateUserDto, tenantId: string, actingUserId: string): Promise<AppResponse> {
+    async createTenantUser(
+        data: CreateUserDto,
+        tenantId: string,
+        tenant: Tenant,
+        actingUserId: string,
+    ): Promise<AppResponse> {
         return this.run(async () => {
             const {
                 password,
@@ -147,6 +169,11 @@ export class UserService extends Service {
                     logo: tenantExists.logo ?? '',
                 });
 
+                // sync community
+                try {
+                    this.syncCommunity(data, member, tenant, data.branchId);
+                } catch (error) {}
+
                 return this.success({
                     data: sanitizeAccount(user),
                     message: 'User created successfully',
@@ -164,6 +191,89 @@ export class UserService extends Service {
                 return this.error((error as Error).message || 'Failed to create user');
             }
         }, 'Failed to create user');
+    }
+
+    async syncCommunity(data: Partial<CreateUserDto>, member: Member, tenant: Tenant, branchId?: string) {
+        const { address, dateOfBirth, profession, gender } = data;
+
+        if (!address && !dateOfBirth && !profession && !gender) {
+            return this.success({
+                message: 'No community-relevant data provided, sync skipped',
+            });
+        }
+
+        return this.run(async () => {
+            // Helper to attach member to a community safely
+            const attachToCommunity = async (community: Community | null) => {
+                if (!community) {
+                    return;
+                }
+                try {
+                    await this.communityMemberService.createCommunityMembers(
+                        {
+                            communityId: community.id,
+                            membersIds: [member.id],
+                            status: 'ACTIVE',
+                            role: 'MEMBER',
+                        },
+                        tenant,
+                    );
+                } catch (err) {
+                    console.error('Failed to attach member to community:', err);
+                }
+            };
+
+            // 1 CELL community
+            if (address) {
+                const cellCommunity = await this.communityRepo.findFirst({
+                    tenantId: tenant.id,
+                    ...(branchId && { branchId }),
+                    location: address,
+                    type: 'CELL',
+                });
+                await attachToCommunity(cellCommunity);
+            }
+
+            // 2️ TRIBE community (based on birth month)
+            if (dateOfBirth) {
+                const birthMonth = toMonthString(dateOfBirth); // returns 'JANUARY', 'FEBRUARY', etc
+                if (birthMonth) {
+                    const tribeCommunity = await this.communityRepo.findFirst({
+                        tenantId: tenant.id,
+                        ...(branchId && { branchId }),
+                        month: birthMonth,
+                        type: 'TRIBE',
+                    });
+                    await attachToCommunity(tribeCommunity);
+                }
+            }
+
+            // 3️ PROFESSION community
+            if (profession) {
+                const professionCommunity = await this.communityRepo.findFirst({
+                    tenantId: tenant.id,
+                    ...(branchId && { branchId }),
+                    profession: profession as ProfessionType,
+                    type: 'PROFESSION',
+                });
+                await attachToCommunity(professionCommunity);
+            }
+
+            // 4️ MINISTRY community (based on gender)
+            if (gender) {
+                const ministryCommunity = await this.communityRepo.findFirst({
+                    tenantId: tenant.id,
+                    ...(branchId && { branchId }),
+                    gender,
+                    type: 'MINISTRY',
+                });
+                await attachToCommunity(ministryCommunity);
+            }
+
+            return this.success({
+                message: 'Member successfully synced to applicable communities',
+            });
+        }, 'Failed to sync member to community');
     }
 
     /**
@@ -215,7 +325,7 @@ export class UserService extends Service {
      * @param data - Signup payload
      * @returns Standardized application response
      */
-    async signupUser(data: SignupUserDto, tenantId: string): Promise<AppResponse> {
+    async signupUser(data: SignupUserDto, tenantId: string, tenant: Tenant): Promise<AppResponse> {
         return this.run(async () => {
             const prisma = this.userRepo.prisma;
 
@@ -293,6 +403,11 @@ export class UserService extends Service {
                     organizationName: tenantExists.name,
                 });
 
+                // sync community
+                try {
+                    this.syncCommunity(data, member, tenant, data.branchId);
+                } catch (error) {}
+
                 return this.success({
                     data: { user, member, tenant: tenantExists },
                     message: 'Signup successful, please verify your account',
@@ -337,6 +452,7 @@ export class UserService extends Service {
      * @param data - Update payload
      * @returns Standardized application response
      */
+
     async updateUser(id: string, data: UpdateUserDto): Promise<AppResponse> {
         return this.run(async () => {
             const { email, role, status, twoFactorEnabled, ...memberData } = data;

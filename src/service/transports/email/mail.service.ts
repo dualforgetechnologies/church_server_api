@@ -1,6 +1,6 @@
 import { AppConfig } from '@/config/app-config';
 
-import { AccountActivation, ActivateAccount, NewOrganizationAccount } from '@/types/mail';
+import { AccountActivation, ActivateAccount, NewCommunityMember, NewOrganizationAccount } from '@/types/mail';
 import { getRenderedEmail } from '@/utils/mailGenerator';
 import { MailClient } from './client';
 
@@ -82,6 +82,26 @@ export class MailService extends MailClient {
             html,
         });
     };
+
+    newCommunityMemberMsg = async (params: NewCommunityMember): Promise<boolean> => {
+        const html = this.generateMail(EmailTemplateName.COMMUNITY_NEW_MEMBER, {
+            FIRST_NAME: params.firstName,
+            LAST_NAME: params.lastName,
+            USER_EMAIL: params.email,
+            LOGIN_LINK: AppConfig.client.loginUrl,
+            ORGANIZATION_NAME: params.organizationName,
+            ORGANIZATION_LOGO: params?.logo ?? DEFAULT_CHURCH_LOGO,
+            ROLE_NAME: params.role,
+            COMMUNITY_NAME: params.communityName,
+        });
+
+        return this.sendMail({
+            to: params.email,
+            subject: `${params.organizationName} Platform`,
+            html,
+        });
+    };
+
     sendOnboardingWelcomeMail = async (params: Partial<NewOrganizationAccount>): Promise<boolean> => {
         const html = this.generateMail(EmailTemplateName.USER_COMPLETED_ONBOARDING, {
             FIRST_NAME: params.firstName,

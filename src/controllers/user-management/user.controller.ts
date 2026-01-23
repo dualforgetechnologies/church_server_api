@@ -28,7 +28,7 @@ export class UserController extends Controller {
         try {
             const payload = req.body as CreateUserDto;
             const tenantId = req?.tenantId;
-            const result = await this.userService.createTenantUser(payload, tenantId, req?.user?.id);
+            const result = await this.userService.createTenantUser(payload, tenantId, req.tenant, req?.user?.id);
             return this.response(res, result);
         } catch (error) {
             return this.error({
@@ -74,7 +74,7 @@ export class UserController extends Controller {
         try {
             const payload = req.body as SignupUserDto;
             const tenantId = req?.tenantId;
-            const result = await this.userService.signupUser(payload, tenantId);
+            const result = await this.userService.signupUser(payload, tenantId, req.tenant);
             return this.response(res, result);
         } catch (error) {
             return this.error({

@@ -10,6 +10,7 @@ export enum EmailTemplateName {
     SUPER_ADMIN_REGISTER_NEW_ORGANIZATION = 'super-admin-register-organization',
     USER_COMPLETED_ONBOARDING = 'user-completed-onboarding',
     INVOICE_NOTIFICATION = 'customer-invoice-notification',
+    COMMUNITY_NEW_MEMBER = 'community-new-member',
     PURCHASE_ORDER_NOTIFICATION = 'purchase-order-notification',
     NEW_MP_CHAT_ALERT = 'mp-chat-message-alert',
 }
@@ -20,6 +21,7 @@ export interface BaseMailOptions {
     subject?: string;
     logo: string;
     organizationName: string;
+    branchName?: string;
 }
 
 export interface ActivateAccount extends BaseMailOptions {
@@ -48,6 +50,14 @@ export interface NewOrganizationAccount extends BaseMailOptions {
     subscriptionStatus?: string;
     expiryDate?: string;
     address: string;
+}
+
+export interface NewCommunityMember extends BaseMailOptions {
+    email: string;
+    firstName: string;
+    lastName: string;
+    role: string;
+    communityName: string;
 }
 
 export interface ResetAccountPassword extends BaseMailOptions {
@@ -109,5 +119,6 @@ export type MailTemplateParamKey =
     | 'SENDER_ROLE'
     | 'MESSAGE_SNIPPET'
     | 'ORGANIZATION_ADDRESS'
-    | 'ORGANIZATION_LOGO';
+    | 'ORGANIZATION_LOGO'
+    | 'COMMUNITY_NAME';
 export type TemplateParams = Partial<Record<MailTemplateParamKey, string | number>>;

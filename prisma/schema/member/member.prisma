@@ -31,13 +31,6 @@ model Member {
   privacySettings      Json    @default("{}")
   notificationSettings Json    @default("{}")
 
-  // Community relations (NO communityId field)
-  cellId     String?
-  ministryId String?
-
-  cell     Community? @relation("CellMembers", fields: [cellId], references: [id])
-  ministry Community? @relation("MinistryMembers", fields: [ministryId], references: [id])
-
   createdBy   String?
   updatedBy   String?
   createdAt   DateTime  @default(now())
@@ -46,12 +39,13 @@ model Member {
   deletedById String?
   deletedAt   DateTime?
 
-  tenant         Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  branch         Branch?     @relation("BranchMembers", fields: [branchId], references: [id], onDelete: SetNull)
-  pastoredBranch Branch?     @relation("BranchPastor")
-  user           User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  Department     Department? @relation(fields: [departmentId], references: [id])
-  departmentId   String?
+  tenant          Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  branch          Branch?           @relation("BranchMembers", fields: [branchId], references: [id], onDelete: SetNull)
+  pastoredBranch  Branch?           @relation("BranchPastor")
+  user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  Department      Department?       @relation(fields: [departmentId], references: [id])
+  departmentId    String?
+  CommunityMember CommunityMember[]
 
   @@unique([tenantId, memberNumber])
   @@index([tenantId])

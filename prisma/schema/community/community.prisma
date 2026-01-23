@@ -1,50 +1,226 @@
 model Community {
-  id              String          @id @default(cuid())
-  tenantId        String
-  branchId        String
-  name            String
-  type            CommunityType
-  description     String?
-  leaderId        String?
-  meetingSchedule Json?
-  location        String?
-  status          CommunityStatus @default(ACTIVE)
+  id                String          @id @default(cuid())
+  tenantId          String
+  branchId          String?
+  type              CommunityType
+  status            CommunityStatus @default(ACTIVE)
+  name              String @unique
+  description       String?
+  tagline           String? // Short description or slogan
+  leaderId          String?
+  assistantLeaderId String?
 
-  maxMembers       Int?
-  isOpen           Boolean @default(true)
-  requiresApproval Boolean @default(false)
+  // Optional metadata
+  gender     String?
+  month      Month?
+  profession ProfessionType?
+  location   String? // Could be city, town, or GPS coordinates
+  country    String?
 
-  createdBy String?
-  updatedBy String?
+  // Communication & engagement
+  contactEmail    String? // Community email
+  contactPhone    String?
+  websiteUrl      String?
+  socialLinks     Json? // Links to social media (FB, IG, YouTube)
+  meetingSchedule Json? // Flexible schedule JSON
+
+  // Governance & compliance
+  createdBy       String?
+  updatedBy       String?
+  deletedAt       DateTime?
+  archivedAt      DateTime? // Optional archive instead of delete
+  complianceNotes String?
+
+  // Auditing & traceability
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  branch Branch @relation(fields: [branchId], references: [id], onDelete: Cascade)
-  leader User?  @relation(fields: [leaderId], references: [id])
+  tenant Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  branch Branch? @relation(fields: [branchId], references: [id], onDelete: Cascade)
 
-  cellMembers     Member[] @relation("CellMembers")
-  ministryMembers Member[] @relation("MinistryMembers")
+  members CommunityMember[]
+  creator User?             @relation(fields: [createdBy], references: [id])
 
   @@index([tenantId])
   @@index([branchId])
   @@index([type])
   @@index([status])
+  @@index([profession])
   @@map("communities")
+}
+
+model CommunityMember {
+  id          String                @id @default(cuid())
+  communityId String
+  memberId    String
+  role        CommunityRole
+  joinedAt    DateTime              @default(now())
+  leftAt      DateTime?
+  status      CummunityMemberStatus @default(ACTIVE) // Active, Inactive, Suspended
+  notes       String? // Notes about the member
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  community Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  member    Member    @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@unique([communityId, memberId])
+  @@index([communityId])
+  @@index([memberId])
+  @@index([role])
+  @@index([status])
+  @@map("community_members")
 }
 
 enum CommunityType {
   CELL
   MINISTRY
-  FELLOWSHIP
-  SUPPORT_GROUP
-  BIBLE_STUDY
-  PRAYER_GROUP
+  PROFESSION
+  TRIBE
+}
+
+enum CommunityRole {
+  MEMBER
+  LEADER
+  ASSISTANT_LEADER
+}
+
+enum ProfessionType {
+  // Technology
+  ENGINEERING
+  SOFTWARE_DEVELOPMENT
+  DATA_SCIENCE
+  CYBERSECURITY
+  IT_SUPPORT
+
+  // Healthcare
+  MEDICAL_DOCTOR
+  NURSE
+  PHARMACIST
+  LAB_TECHNICIAN
+  HEALTHCARE_WORKER
+
+  // Education
+  TEACHER
+  LECTURER
+  EDUCATOR
+  SCHOOL_ADMINISTRATOR
+
+  // Legal
+  LAWYER
+  LEGAL_PRACTITIONER
+  JUDGE
+  PARALEGAL
+
+  // Finance
+  ACCOUNTANT
+  AUDITOR
+  FINANCIAL_ANALYST
+  BANKER
+  ECONOMIST
+
+  // Business
+  BUSINESS_OWNER
+  ENTREPRENEUR
+  STARTUP_FOUNDER
+  TRADER
+  MARKETER
+  SALES_PROFESSIONAL
+
+  // Public Service
+  CIVIL_SERVANT
+  PUBLIC_ADMINISTRATOR
+  GOVERNMENT_WORKER
+
+  // Construction & Real Estate
+  ARCHITECT
+  QUANTITY_SURVEYOR
+  ESTATE_MANAGER
+
+  // Skilled Trades
+  MECHANIC
+  ELECTRICIAN
+  PLUMBER
+  TECHNICIAN
+  ARTISAN
+
+  // Agriculture
+  FARMER
+  AGRICULTURAL_SPECIALIST
+
+  // Transport & Logistics
+  TRANSPORT_WORKER
+  DRIVER
+  LOGISTICS_MANAGER
+
+  // Media & Creative
+  MEDIA_PRACTITIONER
+  JOURNALIST
+  CONTENT_CREATOR
+  GRAPHIC_DESIGNER
+
+  // Fashion & Beauty
+  FASHION_DESIGNER
+  TAILOR
+  BEAUTICIAN
+  COSMETOLOGIST
+
+  // Academia
+  STUDENT
+  RESEARCHER
+  ACADEMIC
+
+  // Religious
+  CLERGY
+  MINISTER
+  PASTOR
+  MISSIONARY
+
+  // Security
+  SECURITY_OFFICER
+  LAW_ENFORCEMENT
+  MILITARY
+
+  // Social Impact
+  NGO_WORKER
+  SOCIAL_WORKER
+  COMMUNITY_VOLUNTEER
+
+  // Others
+  UNEMPLOYED
+  RETIRED
+  OTHER
+}
+
+enum CummunityMemberStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+  PENDING
+  ARCHIVED
 }
 
 enum CommunityStatus {
   ACTIVE
   INACTIVE
-  MERGED
-  DISBANDED
+  PENDING
+  ARCHIVED
+  SUSPENDED
+}
+
+
+enum Month {
+  JANUARY
+  FEBRUARY
+  MARCH
+  APRIL
+  MAY
+  JUNE
+  JULY
+  AUGUST
+  SEPTEMBER
+  OCTOBER
+  NOVEMBER
+  DECEMBER
 }

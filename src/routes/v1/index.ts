@@ -1,6 +1,7 @@
 import express from 'express';
 
 import branchRouter from './branch/branch.route';
+import communityRouter from './community/community.route';
 import memberRouter from './member/member.route';
 import tenantRouter from './tenant/tenant.route';
 import authRouter from './user/auth.route';
@@ -25,5 +26,6 @@ router.use('/permissions', permissionRouter);
 router.use('/tenants', tenantRouter);
 router.use('/branches', branchRouter);
 router.use('/members', memberRouter);
+router.use('/communities', communityRouter);
 
 export const Router = router;

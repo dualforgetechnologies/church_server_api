@@ -74,3 +74,52 @@ export function safeJsonParse<T = unknown>(value: string): T | string {
         return value;
     }
 }
+
+export enum Month {
+    JANUARY = 'JANUARY',
+    FEBRUARY = 'FEBRUARY',
+    MARCH = 'MARCH',
+    APRIL = 'APRIL',
+    MAY = 'MAY',
+    JUNE = 'JUNE',
+    JULY = 'JULY',
+    AUGUST = 'AUGUST',
+    SEPTEMBER = 'SEPTEMBER',
+    OCTOBER = 'OCTOBER',
+    NOVEMBER = 'NOVEMBER',
+    DECEMBER = 'DECEMBER',
+}
+
+const MONTHS_ARRAY: Month[] = [
+    Month.JANUARY,
+    Month.FEBRUARY,
+    Month.MARCH,
+    Month.APRIL,
+    Month.MAY,
+    Month.JUNE,
+    Month.JULY,
+    Month.AUGUST,
+    Month.SEPTEMBER,
+    Month.OCTOBER,
+    Month.NOVEMBER,
+    Month.DECEMBER,
+];
+
+/**
+ * Converts a date value to a Month string enum (e.g., 'JANUARY').
+ * Returns null if the date is invalid.
+ */
+export function toMonthString(value?: Date | string | null): Month | null {
+    if (!value) {
+        return null;
+    }
+
+    const date = value instanceof Date ? value : new Date(value);
+
+    if (Number.isNaN(date.getTime())) {
+        return null;
+    }
+    const monthIndex = date.getMonth(); // 0–11
+
+    return MONTHS_ARRAY[monthIndex] ?? null;
+}

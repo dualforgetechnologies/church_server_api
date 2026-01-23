@@ -1,0 +1,448 @@
+openapi: 3.0.3
+info:
+  title: Community API
+  version: 1.0.0
+  description: API endpoints for managing communities and their members
+
+paths:
+  /api/v1/communities:
+    post:
+      tags: [Communities]
+      summary: Create a new community
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCommunityDto'
+      responses:
+        '201':
+          description: Community created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommunityResponse'
+        '400': { description: Validation error }
+        '401': { description: Unauthorized }
+        '409': { description: Community with this name already exists }
+
+    get:
+      tags: [Communities]
+      summary: List communities with optional filters, search, pagination, and sorting
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema: { type: integer, default: 1 }
+        - name: limit
+          in: query
+          schema: { type: integer, default: 20 }
+        - name: branchId
+          in: query
+          schema: { type: string }
+        - name: type
+          in: query
+          schema: { $ref: '#/components/schemas/CommunityType' }
+        - name: status
+          in: query
+          schema: { $ref: '#/components/schemas/CommunityStatus' }
+        - name: profession
+          in: query
+          schema: { $ref: '#/components/schemas/ProfessionType' }
+        - name: gender
+          in: query
+          schema: { type: string }
+        - name: month
+          in: query
+          schema: { $ref: '#/components/schemas/Month' }
+        - name: sortBy
+          in: query
+          schema: { type: string, default: createdAt }
+        - name: search
+          in: query
+          schema: { type: string }
+          description: Search term for community name, tagline, or description
+      responses:
+        '200':
+          description: List of communities
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/CommunityResponse'
+                  pagination:
+                    $ref: '#/components/schemas/PaginatedMetaData'
+        '401': { description: Unauthorized }
+
+  /api/v1/communities/{id}:
+    get:
+      tags: [Communities]
+      summary: Get a community by ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+        - name: includeMembers
+          in: query
+          schema: { type: boolean, default: false }
+      responses:
+        '200':
+          description: Community retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommunityResponse'
+        '401': { description: Unauthorized }
+        '404': { description: Community not found }
+
+    put:
+      tags: [Communities]
+      summary: Update community details
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateCommunityDto'
+      responses:
+        '200':
+          description: Community updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommunityResponse'
+        '400': { description: Validation error }
+        '401': { description: Unauthorized }
+        '404': { description: Community not found }
+
+    delete:
+      tags: [Communities]
+      summary: Delete a community
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: Community deleted successfully }
+
+  /api/v1/communities/{id}/archive:
+    post:
+      tags: [Communities]
+      summary: Archive a community
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: Community archived successfully }
+
+  /api/v1/communities/members:
+    post:
+      tags: [Community Members]
+      summary: Add a member to a community
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCommunityMemberDto'
+      responses:
+        '200': { description: Member added successfully }
+
+  /api/v1/communities/members/{communityId}/{memberId}:
+    get:
+      tags: [Community Members]
+      summary: Get a community member by ID
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: communityId
+          in: path
+          required: true
+          schema: { type: string }
+        - name: memberId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Community member retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommunityMemberResponse'
+
+    put:
+      tags: [Community Members]
+      summary: Update a community member
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: communityId
+          in: path
+          required: true
+          schema: { type: string }
+        - name: memberId
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateCommunityMemberDto'
+      responses:
+        '200': { description: Member updated successfully }
+
+    delete:
+      tags: [Community Members]
+      summary: Remove a member from a community
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: communityId
+          in: path
+          required: true
+          schema: { type: string }
+        - name: memberId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: Member removed successfully }
+
+  /api/v1/communities/{communityId}/members:
+    get:
+      tags: [Community Members]
+      summary: List members of a community
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: communityId
+          in: path
+          required: true
+          schema: { type: string }
+        - name: page
+          in: query
+          schema: { type: integer, default: 1 }
+        - name: limit
+          in: query
+          schema: { type: integer, default: 20 }
+        - name: role
+          in: query
+          schema: { $ref: '#/components/schemas/CommunityRole' }
+        - name: status
+          in: query
+          schema: { $ref: '#/components/schemas/CummunityMemberStatus' }
+        - name: sortBy
+          in: query
+          schema: { type: string, default: joinedAt }
+        - name: search
+          in: query
+          schema: { type: string }
+          description: Search term for member name or notes
+      responses:
+        '200':
+          description: List of community members
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/CommunityMemberResponse'
+                  pagination:
+                    $ref: '#/components/schemas/PaginatedMetaData'
+
+components:
+  schemas:
+    CommunityType:
+      type: string
+      enum: [CELL, MINISTRY, PROFESSION, TRIBE]
+
+    CommunityRole:
+      type: string
+      enum: [MEMBER, LEADER, ASSISTANT_LEADER]
+
+    ProfessionType:
+      type: string
+      enum: [ENGINEERING, SOFTWARE_DEVELOPMENT, DATA_SCIENCE, CYBERSECURITY, IT_SUPPORT,
+             MEDICAL_DOCTOR, NURSE, PHARMACIST, LAB_TECHNICIAN, HEALTHCARE_WORKER,
+             TEACHER, LECTURER, EDUCATOR, SCHOOL_ADMINISTRATOR,
+             LAWYER, LEGAL_PRACTITIONER, JUDGE, PARALEGAL,
+             ACCOUNTANT, AUDITOR, FINANCIAL_ANALYST, BANKER, ECONOMIST,
+             BUSINESS_OWNER, ENTREPRENEUR, STARTUP_FOUNDER, TRADER, MARKETER, SALES_PROFESSIONAL,
+             CIVIL_SERVANT, PUBLIC_ADMINISTRATOR, GOVERNMENT_WORKER,
+             ARCHITECT, QUANTITY_SURVEYOR, ESTATE_MANAGER,
+             MECHANIC, ELECTRICIAN, PLUMBER, TECHNICIAN, ARTISAN,
+             FARMER, AGRICULTURAL_SPECIALIST,
+             TRANSPORT_WORKER, DRIVER, LOGISTICS_MANAGER,
+             MEDIA_PRACTITIONER, JOURNALIST, CONTENT_CREATOR, GRAPHIC_DESIGNER,
+             FASHION_DESIGNER, TAILOR, BEAUTICIAN, COSMETOLOGIST,
+             STUDENT, RESEARCHER, ACADEMIC,
+             CLERGY, MINISTER, PASTOR, MISSIONARY,
+             SECURITY_OFFICER, LAW_ENFORCEMENT, MILITARY,
+             NGO_WORKER, SOCIAL_WORKER, COMMUNITY_VOLUNTEER,
+             UNEMPLOYED, RETIRED, OTHER]
+
+    CommunityStatus:
+      type: string
+      enum: [ACTIVE, INACTIVE, PENDING, ARCHIVED, SUSPENDED]
+
+    CummunityMemberStatus:
+      type: string
+      enum: [ACTIVE, INACTIVE, SUSPENDED, PENDING, ARCHIVED]
+
+    Month:
+      type: string
+      enum: [JANUARY, FEBRUARY, MARCH, APRIL, MAY, JUNE, JULY, AUGUST, SEPTEMBER, OCTOBER, NOVEMBER, DECEMBER]
+
+    CreateCommunityDto:
+      type: object
+      properties:
+        branchId: { type: string }
+        type: { $ref: '#/components/schemas/CommunityType' }
+        status: { $ref: '#/components/schemas/CommunityStatus', default: ACTIVE }
+        name: { type: string }
+        description: { type: string }
+        tagline: { type: string }
+        leaderId: { type: string }
+        assistantLeaderId: { type: string }
+        gender: { type: string }
+        month: { $ref: '#/components/schemas/Month' }
+        profession: { $ref: '#/components/schemas/ProfessionType' }
+        location: { type: string }
+        country: { type: string }
+        contactEmail: { type: string, format: email }
+        contactPhone: { type: string }
+        websiteUrl: { type: string, format: uri }
+        socialLinks: { type: object, additionalProperties: { type: string } }
+        meetingSchedule: { type: object, additionalProperties: {} }
+        complianceNotes: { type: string }
+        membersIds:      
+          type: array
+          items:
+            type: string
+
+    UpdateCommunityDto:
+      allOf:
+        - $ref: '#/components/schemas/CreateCommunityDto'
+        - type: object
+          properties:
+            updatedBy: { type: string }
+            archivedAt: { type: string, format: date-time }
+            deletedAt: { type: string, format: date-time }
+
+    CreateCommunityMemberDto:
+      type: object
+      properties:
+        communityId: { type: string }
+        membersIds:      
+          type: array
+          items:
+            type: string
+        role: { $ref: '#/components/schemas/CommunityRole', default: MEMBER }
+        status: { $ref: '#/components/schemas/CummunityMemberStatus', default: ACTIVE }
+        joinedAt: { type: string, format: date-time }
+        notes: { type: string }
+
+    UpdateCommunityMemberDto:
+      type: object
+      properties:
+        role: { $ref: '#/components/schemas/CommunityRole' }
+        status: { $ref: '#/components/schemas/CummunityMemberStatus' }
+        leftAt: { type: string, format: date-time }
+        notes: { type: string }
+
+    CommunityResponse:
+      type: object
+      properties:
+        id: { type: string }
+        branchId: { type: string }
+        type: { $ref: '#/components/schemas/CommunityType' }
+        status: { $ref: '#/components/schemas/CommunityStatus' }
+        name: { type: string }
+        description: { type: string }
+        tagline: { type: string }
+        leaderId: { type: string }
+        assistantLeaderId: { type: string }
+        gender: { type: string }
+        month: { $ref: '#/components/schemas/Month' }
+        profession: { $ref: '#/components/schemas/ProfessionType' }
+        location: { type: string }
+        country: { type: string }
+        contactEmail: { type: string }
+        contactPhone: { type: string }
+        websiteUrl: { type: string }
+        socialLinks: { type: object, additionalProperties: { type: string } }
+        meetingSchedule: { type: object, additionalProperties: {} }
+        complianceNotes: { type: string }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    CommunityMemberResponse:
+      type: object
+      properties:
+        id: { type: string }
+        communityId: { type: string }
+        memberId: { type: string }
+        role: { $ref: '#/components/schemas/CommunityRole' }
+        status: { $ref: '#/components/schemas/CummunityMemberStatus' }
+        joinedAt: { type: string, format: date-time }
+        leftAt: { type: string, format: date-time }
+        notes: { type: string }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    PaginatedMetaData:
+      type: object
+      properties:
+        page: { type: integer, example: 1 }
+        limit: { type: integer, example: 20 }
+        total: { type: integer, example: 120 }
+        totalPages: { type: integer, example: 6 }
+
+    AppResponse:
+      type: object
+      required: [message, code, success]
+      properties:
+        message: { type: string, example: Operation successful }
+        code: { type: integer, example: 200 }
+        success: { type: boolean, example: true }
+        data: { nullable: true }
+        pagination: { $ref: '#/components/schemas/PaginatedMetaData', nullable: true }
+        environment: { type: string, example: production }
+
+    ErrorResponse:
+      allOf:
+        - $ref: '#/components/schemas/AppResponse'
+        - type: object
+          properties:
+            success: { example: false }
+            data: { nullable: true }
+
+securitySchemes:
+  bearerAuth:
+    type: http
+    scheme: bearer
+    bearerFormat: JWT
