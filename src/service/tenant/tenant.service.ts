@@ -373,9 +373,7 @@ export class TenantService extends Service {
                     branchId,
                     twoFactorEnabled,
                     role,
-                    departmentId,
-                    cellId,
-                    ministryId,
+
                     ...memberData
                 } = adminData;
 

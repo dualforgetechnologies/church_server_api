@@ -1,606 +1,562 @@
 import {
-  Community,
-  CommunityType,
-  Member,
-  MemberStatus,
-  MemberType,
-  PrismaClient,
-  ProfessionType,
-  Tenant,
-  User,
-  UserRole,
-  UserStatus,
-} from "@prisma/client";
-import * as bcrypt from "bcryptjs";
-import { StatusCodes } from "http-status-codes";
+    Community,
+    CommunityType,
+    Member,
+    MemberStatus,
+    MemberType,
+    PrismaClient,
+    ProfessionType,
+    Tenant,
+    User,
+    UserRole,
+    UserStatus,
+} from '@prisma/client';
+import * as bcrypt from 'bcryptjs';
+import { StatusCodes } from 'http-status-codes';
 
-import { AppConfig } from "@/config/app-config";
-import Logger from "@/config/logger";
-import { MemberRepository } from "@/repository/member.repository";
-import { UserRepository } from "@/repository/user.repository";
-import { AppResponse } from "@/types/types";
-import { formatReadableLabel, getExpiryDateFromNow, toMonthString } from "@/utils/common";
-import { generateTempKey } from "@/utils/generateTemKey";
-import { JwtService } from "@/utils/jwtService";
-import { sanitizeAccount } from "@/utils/sanitizers/account";
-import { StringValue } from "ms";
-import { Service } from "../base/service.base";
-import { MailService } from "../transports/email/mail.service";
+import { AppConfig } from '@/config/app-config';
+import Logger from '@/config/logger';
+import { MemberRepository } from '@/repository/member.repository';
+import { UserRepository } from '@/repository/user.repository';
+import { AppResponse } from '@/types/types';
+import { formatReadableLabel, getExpiryDateFromNow, toMonthString } from '@/utils/common';
+import { generateTempKey } from '@/utils/generateTemKey';
+import { JwtService } from '@/utils/jwtService';
+import { sanitizeAccount } from '@/utils/sanitizers/account';
+import { StringValue } from 'ms';
+import { Service } from '../base/service.base';
+import { MailService } from '../transports/email/mail.service';
 
-import { CreateCommunityDto } from "@/DTOs/community/community.dto";
-import {
-  CreateSuperAdminDto,
-  CreateUserDto,
-  SignupUserDto,
-  UpdateUserDto,
-} from "@/DTOs/user";
-import { CommunityRepository } from "@/repository/community/community.repository";
-import {
-  RoleRepository,
-  UserRoleAssignmentRepository,
-} from "@/repository/role.repository";
-import { CommunityService } from "../community/community.service";
-import { CommunityMemberService } from "../community/communityMember.service";
+import { CreateCommunityDto } from '@/DTOs/community/community.dto';
+import { CreateSuperAdminDto, CreateUserDto, SignupUserDto, UpdateUserDto } from '@/DTOs/user';
+import { CommunityRepository } from '@/repository/community/community.repository';
+import { RoleRepository, UserRoleAssignmentRepository } from '@/repository/role.repository';
+import { CommunityService } from '../community/community.service';
+import { CommunityMemberService } from '../community/communityMember.service';
 
 export class UserService extends Service {
-  private userRepo: UserRepository;
-  private memberRepo: MemberRepository;
-  private mailService: MailService;
-  private jwtService: JwtService;
-  private userRoleRepo: UserRoleAssignmentRepository;
-  private roleRepo: RoleRepository;
-  private communityRepo: CommunityRepository;
-  private communityMemberService: CommunityMemberService;
-  private communityService: CommunityService;
+    private userRepo: UserRepository;
+    private memberRepo: MemberRepository;
+    private mailService: MailService;
+    private jwtService: JwtService;
+    private userRoleRepo: UserRoleAssignmentRepository;
+    private roleRepo: RoleRepository;
+    private communityRepo: CommunityRepository;
+    private communityMemberService: CommunityMemberService;
+    private communityService: CommunityService;
 
-  /**
-   * Initializes the UserService with required repositories
-   * and infrastructure services.
-   *
-   * @param prisma - Prisma client instance
-   */
-  constructor(prisma: PrismaClient) {
-    super(new Logger("UserService", "USER_CORE_SERVICE"));
-    this.userRepo = new UserRepository(prisma);
-    this.memberRepo = new MemberRepository(prisma);
-    this.mailService = new MailService();
-    this.jwtService = new JwtService();
-    this.userRoleRepo = new UserRoleAssignmentRepository(this.prisma);
-    this.roleRepo = new RoleRepository(this.prisma);
-    this.communityRepo = new CommunityRepository(prisma);
-    this.communityMemberService = new CommunityMemberService(prisma);
-    this.communityService = new CommunityService(prisma);
-  }
-
-  /**
-   * Creates a new user under a church by an administrator.
-   *
-   * This operation:
-   * - Validates email uniqueness
-   * - Validates tenant existence (if provided)
-   * - Creates both User and Member records atomically
-   * - Generates a temporary password if none is supplied
-   * - Sends credentials via email
-   *
-   * @param data - User creation payload
-   * @returns Standardized application response
-   */
-
-  async createTenantUser(
-    data: CreateUserDto,
-    tenantId: string,
-    tenant: Tenant,
-    actingUserId: string,
-  ): Promise<AppResponse> {
-    return this.run(async () => {
-      const {
-        password,
-        email,
-        branchId,
-        role,
-        twoFactorEnabled,
-
-        roleId,
-        roleExpiresAt,
-
-        ...memberData
-      } = data;
-      const prisma = this.userRepo.prisma;
-
-      let user: User | null = null;
-      let member: Member | null = null;
-      let userRoleId: string | null = null;
-
-      try {
-        const existingUser = await this.userRepo.findFirst({ email });
-        if (existingUser) {
-          throw new Error("Email already in use");
-        }
-
-        const tenantExists = await prisma.tenant.findUnique({
-          where: { id: tenantId },
-        });
-        if (!tenantExists) {
-          throw new Error("Tenant not found");
-        }
-
-        const tempPassword = generateTempKey(email, "", 6);
-        const passwordHash = await bcrypt.hash(tempPassword, 10);
-
-        user = await this.userRepo.create({
-          email,
-          passwordHash,
-          role: role ?? UserRole.MEMBER,
-          status: UserStatus.ACTIVE,
-          twoFactorEnabled: twoFactorEnabled ?? false,
-          ...(tenantId && { tenant: { connect: { id: tenantId } } }),
-        });
-
-        member = await this.memberRepo.create({
-          ...memberData,
-          user: { connect: { id: user.id } },
-          tenant: { connect: { id: tenantId! } },
-          ...(branchId && { branch: { connect: { id: branchId } } }),
-          memberNumber: `M-${crypto.randomUUID().slice(0, 8).toUpperCase()}`,
-          memberType: MemberType.MEMBER,
-          memberStatus: MemberStatus.ACTIVE,
-          email,
-        });
-
-        if (roleId) {
-          const roleExists = await this.roleRepo.findById({
-            id: roleId,
-            tenantId,
-          });
-
-          if (!roleExists) {
-            throw new Error(`No role found with id ${roleId}`);
-          }
-
-          const userRole = await this.userRoleRepo.create({
-            role: { connect: { id: roleId } },
-            user: { connect: { id: user.id } },
-            assignedBy: actingUserId,
-            expiresAt: roleExpiresAt,
-          });
-
-          userRoleId = userRole.id;
-        }
-
-        // Update user with member relation
-        await this.userRepo.update(
-          { id: user.id },
-          { member: { connect: { id: member.id } } },
-        );
-
-        // Send credentials email
-        await this.mailService.sendNewMemberCredentialsMail({
-          to: email,
-          email,
-          temPassword: tempPassword,
-          organizationName: tenantExists.name,
-          role: user.role,
-          firstName: memberData.firstName ?? "",
-          lastName: memberData.lastName ?? "",
-          logo: tenantExists.logo ?? "",
-        });
-
-        // sync community
-        try {
-          if (data.branchId) {
-            this.syncCommunity(data, member, tenant, data.branchId);
-          }
-        } catch (error) {}
-
-        return this.success({
-          data: sanitizeAccount(user),
-          message: "User created successfully",
-          code: 201,
-        });
-      } catch (error) {
-        // COMPENSATING ACTIONS (ROLLBACK)
-        if (member) {
-          await prisma.member
-            .delete({ where: { id: member.id } })
-            .catch(() => undefined);
-        }
-        if (user) {
-          await prisma.user
-            .delete({ where: { id: user.id } })
-            .catch(() => undefined);
-        }
-
-        return this.error((error as Error).message || "Failed to create user");
-      }
-    }, "Failed to create user");
-  }
-
-  async syncCommunity(
-    data: Partial<CreateUserDto>,
-    member: Member,
-    tenant: Tenant,
-    branchId: string,
-  ) {
-    const { location, dateOfBirth, profession, gender } = data;
-
-    if (!location && !dateOfBirth && !profession && !gender) {
-      return this.success({
-        message: "No community-relevant data provided, sync skipped",
-      });
+    /**
+     * Initializes the UserService with required repositories
+     * and infrastructure services.
+     *
+     * @param prisma - Prisma client instance
+     */
+    constructor(prisma: PrismaClient) {
+        super(new Logger('UserService', 'USER_CORE_SERVICE'));
+        this.userRepo = new UserRepository(prisma);
+        this.memberRepo = new MemberRepository(prisma);
+        this.mailService = new MailService();
+        this.jwtService = new JwtService();
+        this.userRoleRepo = new UserRoleAssignmentRepository(this.prisma);
+        this.roleRepo = new RoleRepository(this.prisma);
+        this.communityRepo = new CommunityRepository(prisma);
+        this.communityMemberService = new CommunityMemberService(prisma);
+        this.communityService = new CommunityService(prisma);
     }
 
-    return this.run(async () => {
-      // Helper to attach member to a community safely
-      const attachToCommunity = async (
-        community: Community | null,
-        dto: CreateCommunityDto,
-      ) => {
-        let useCommunity: Community | undefined = community ?? undefined;
-        if (!community) {
-          try {
-            const result = await this.communityService.createCommunity(
-              dto,
-              tenant,
-            );
-            if (result.success === true) {
-              useCommunity = result.data;
+    /**
+     * Creates a new user under a church by an administrator.
+     *
+     * This operation:
+     * - Validates email uniqueness
+     * - Validates tenant existence (if provided)
+     * - Creates both User and Member records atomically
+     * - Generates a temporary password if none is supplied
+     * - Sends credentials via email
+     *
+     * @param data - User creation payload
+     * @returns Standardized application response
+     */
+
+    async createTenantUser(
+        data: CreateUserDto,
+        tenantId: string,
+        tenant: Tenant,
+        actingUserId: string,
+    ): Promise<AppResponse> {
+        return this.run(async () => {
+            const {
+                password,
+                email,
+                branchId,
+                role,
+                twoFactorEnabled,
+
+                roleId,
+                roleExpiresAt,
+
+                ...memberData
+            } = data;
+            const prisma = this.userRepo.prisma;
+
+            let user: User | null = null;
+            let member: Member | null = null;
+            let userRoleId: string | null = null;
+
+            try {
+                const existingUser = await this.userRepo.findFirst({ email });
+                if (existingUser) {
+                    throw new Error('Email already in use');
+                }
+
+                const tenantExists = await prisma.tenant.findUnique({
+                    where: { id: tenantId },
+                });
+                if (!tenantExists) {
+                    throw new Error('Tenant not found');
+                }
+
+                const tempPassword = generateTempKey(email, '', 6);
+                const passwordHash = await bcrypt.hash(tempPassword, 10);
+
+                user = await this.userRepo.create({
+                    email,
+                    passwordHash,
+                    role: role ?? UserRole.MEMBER,
+                    status: UserStatus.ACTIVE,
+                    twoFactorEnabled: twoFactorEnabled ?? false,
+                    ...(tenantId && { tenant: { connect: { id: tenantId } } }),
+                });
+
+                member = await this.memberRepo.create({
+                    ...memberData,
+                    user: { connect: { id: user.id } },
+                    tenant: { connect: { id: tenantId! } },
+                    ...(branchId && { branch: { connect: { id: branchId } } }),
+                    memberNumber: `M-${crypto.randomUUID().slice(0, 8).toUpperCase()}`,
+                    memberType: MemberType.MEMBER,
+                    memberStatus: MemberStatus.ACTIVE,
+                    email,
+                });
+
+                if (roleId) {
+                    const roleExists = await this.roleRepo.findById({
+                        id: roleId,
+                        tenantId,
+                    });
+
+                    if (!roleExists) {
+                        throw new Error(`No role found with id ${roleId}`);
+                    }
+
+                    const userRole = await this.userRoleRepo.create({
+                        role: { connect: { id: roleId } },
+                        user: { connect: { id: user.id } },
+                        assignedBy: actingUserId,
+                        expiresAt: roleExpiresAt,
+                    });
+
+                    userRoleId = userRole.id;
+                }
+
+                // Update user with member relation
+                await this.userRepo.update({ id: user.id }, { member: { connect: { id: member.id } } });
+
+                // Send credentials email
+                await this.mailService.sendNewMemberCredentialsMail({
+                    to: email,
+                    email,
+                    temPassword: tempPassword,
+                    organizationName: tenantExists.name,
+                    role: user.role,
+                    firstName: memberData.firstName ?? '',
+                    lastName: memberData.lastName ?? '',
+                    logo: tenantExists.logo ?? '',
+                });
+
+                // sync community
+                try {
+                    if (data.branchId) {
+                        this.syncCommunity(data, member, tenant, data.branchId);
+                    }
+                } catch (error) {}
+
+                return this.success({
+                    data: sanitizeAccount(user),
+                    message: 'User created successfully',
+                    code: 201,
+                });
+            } catch (error) {
+                // COMPENSATING ACTIONS (ROLLBACK)
+                if (member) {
+                    await prisma.member.delete({ where: { id: member.id } }).catch(() => undefined);
+                }
+                if (user) {
+                    await prisma.user.delete({ where: { id: user.id } }).catch(() => undefined);
+                }
+
+                return this.error((error as Error).message || 'Failed to create user');
             }
-          } catch (err) {}
+        }, 'Failed to create user');
+    }
+
+    async syncCommunity(data: Partial<CreateUserDto>, member: Member, tenant: Tenant, branchId: string) {
+        const { location, dateOfBirth, profession, gender } = data;
+
+        if (!location && !dateOfBirth && !profession && !gender) {
+            return this.success({
+                message: 'No community-relevant data provided, sync skipped',
+            });
         }
 
-        if (!useCommunity?.id) {
-          return;
-        }
-        try {
-          await this.communityMemberService.createCommunityMembers(
-            {
-              communityId: useCommunity.id,
-              membersIds: [member.id],
-              status: "ACTIVE",
-              role: "MEMBER",
-            },
-            tenant,
-            true,
-          );
-        } catch (err) {
-          console.error("Failed to attach member to community:", err);
-        }
-      };
+        return this.run(async () => {
+            // Helper to attach member to a community safely
+            const attachToCommunity = async (community: Community | null, dto: CreateCommunityDto) => {
+                let useCommunity: Community | undefined = community ?? undefined;
+                if (!community) {
+                    try {
+                        const result = await this.communityService.createCommunity(dto, tenant);
+                        if (result.success === true) {
+                            useCommunity = result.data;
+                        }
+                    } catch (err) {}
+                }
 
-      // 1 CELL community
-      if (location) {
-        const query = {
-          location,
-          type: "CELL" as CommunityType,
-          branchId,
-        };
-        const dto: CreateCommunityDto = {
-          ...query,
-          status: "ACTIVE",
-          name: `${formatReadableLabel(location)} cell community`,
-          membersIds: [],
-        };
-        const cellCommunity = await this.communityRepo.findFirst({
-          tenantId: tenant.id,
-          ...query,
-        });
-        // create if not existing
-        await attachToCommunity(cellCommunity, dto);
-      }
+                if (!useCommunity?.id) {
+                    return;
+                }
+                try {
+                    await this.communityMemberService.createCommunityMembers(
+                        {
+                            communityId: useCommunity.id,
+                            membersIds: [member.id],
+                            status: 'ACTIVE',
+                            role: 'MEMBER',
+                        },
+                        tenant,
+                        true,
+                    );
+                } catch (err) {
+                    console.error('Failed to attach member to community:', err);
+                }
+            };
 
-      // 2 TRIBE community (based on birth month)
-      if (dateOfBirth) {
-        const birthMonth = toMonthString(dateOfBirth); // returns 'JANUARY', 'FEBRUARY',
-        if (birthMonth) {
-          const query = {
-            month: birthMonth,
-            type: "TRIBE" as CommunityType,
-            branchId,
-          };
-          const dto: CreateCommunityDto = {
-            ...query,
-            status: "ACTIVE",
-            name: `${formatReadableLabel(birthMonth ?? "")} tribe community`,
-            membersIds: [],
-          };
+            // 1 CELL community
+            if (location) {
+                const query = {
+                    location,
+                    type: 'CELL' as CommunityType,
+                    branchId,
+                };
+                const dto: CreateCommunityDto = {
+                    ...query,
+                    status: 'ACTIVE',
+                    name: `${formatReadableLabel(location)} cell community`,
+                    membersIds: [],
+                };
+                const cellCommunity = await this.communityRepo.findFirst({
+                    tenantId: tenant.id,
+                    ...query,
+                });
+                // create if not existing
+                await attachToCommunity(cellCommunity, dto);
+            }
 
-          const tribeCommunity = await this.communityRepo.findFirst({
-            tenantId: tenant.id,
-            ...query,
-          });
-          await attachToCommunity(tribeCommunity, dto);
-        }
-      }
+            // 2 TRIBE community (based on birth month)
+            if (dateOfBirth) {
+                const birthMonth = toMonthString(dateOfBirth); // returns 'JANUARY', 'FEBRUARY',
+                if (birthMonth) {
+                    const query = {
+                        month: birthMonth,
+                        type: 'TRIBE' as CommunityType,
+                        branchId,
+                    };
+                    const dto: CreateCommunityDto = {
+                        ...query,
+                        status: 'ACTIVE',
+                        name: `${formatReadableLabel(birthMonth ?? '')} tribe community`,
+                        membersIds: [],
+                    };
 
-      // 3 PROFESSION community
-      try {
-        if (profession) {
-          const query = {
-            profession: profession as ProfessionType,
-            type: "PROFESSION" as CommunityType,
-            branchId,
-          };
-          const dto: CreateCommunityDto = {
-            ...query,
-            status: "ACTIVE",
-            name: `${formatReadableLabel(profession ?? "")} profession community`,
-            membersIds: [],
-          };
+                    const tribeCommunity = await this.communityRepo.findFirst({
+                        tenantId: tenant.id,
+                        ...query,
+                    });
+                    await attachToCommunity(tribeCommunity, dto);
+                }
+            }
 
-          const professionCommunity = await this.communityRepo.findFirst({
-            tenantId: tenant.id,
-            ...query,
-          });
-          await attachToCommunity(professionCommunity, dto);
-        }
-      } catch (_) {}
+            // 3 PROFESSION community
+            try {
+                if (profession) {
+                    const query = {
+                        profession: profession as ProfessionType,
+                        type: 'PROFESSION' as CommunityType,
+                        branchId,
+                    };
+                    const dto: CreateCommunityDto = {
+                        ...query,
+                        status: 'ACTIVE',
+                        name: `${formatReadableLabel(profession ?? '')} profession community`,
+                        membersIds: [],
+                    };
 
-      // 4 MINISTRY community (based on gender)
+                    const professionCommunity = await this.communityRepo.findFirst({
+                        tenantId: tenant.id,
+                        ...query,
+                    });
+                    await attachToCommunity(professionCommunity, dto);
+                }
+            } catch (_) {}
 
-      try {
-        if (gender) {
-          const query = {
-            gender,
-            type: "MINISTRY" as CommunityType,
-            branchId,
-          };
-          const dto: CreateCommunityDto = {
-            ...query,
-            status: "ACTIVE",
-            name: ` ${formatReadableLabel((gender ?? ""))} ministry community`,
-            membersIds: [],
-          };
+            // 4 MINISTRY community (based on gender)
 
-          const ministryCommunity = await this.communityRepo.findFirst({
-            tenantId: tenant.id,
-            ...query,
-          });
-          await attachToCommunity(ministryCommunity, dto);
-        }
-      } catch (error) {}
+            try {
+                if (gender) {
+                    const query = {
+                        gender,
+                        type: 'MINISTRY' as CommunityType,
+                        branchId,
+                    };
+                    const dto: CreateCommunityDto = {
+                        ...query,
+                        status: 'ACTIVE',
+                        name: ` ${formatReadableLabel(gender ?? '')} ministry community`,
+                        membersIds: [],
+                    };
 
-      return this.success({
-        message: "Member successfully synced to applicable communities",
-      });
-    }, "Failed to sync member to community");
-  }
+                    const ministryCommunity = await this.communityRepo.findFirst({
+                        tenantId: tenant.id,
+                        ...query,
+                    });
+                    await attachToCommunity(ministryCommunity, dto);
+                }
+            } catch (error) {}
 
-  /**
-   * Creates the system Super Admin.
-   *
-   * This method enforces a singleton constraint:
-   * only one super admin may exist in the system.
-   *
-   * @param data - Super admin credentials
-   * @returns Standardized application response
-   */
-  async createSuperAdmin(data: CreateSuperAdminDto): Promise<AppResponse> {
-    return this.run(async () => {
-      const exists = await this.userRepo.findFirst({
-        role: UserRole.SUPER_ADMIN,
-      });
+            return this.success({
+                message: 'Member successfully synced to applicable communities',
+            });
+        }, 'Failed to sync member to community');
+    }
 
-      if (exists) {
-        return this.error("Super admin already exists", StatusCodes.CONFLICT);
-      }
+    /**
+     * Creates the system Super Admin.
+     *
+     * This method enforces a singleton constraint:
+     * only one super admin may exist in the system.
+     *
+     * @param data - Super admin credentials
+     * @returns Standardized application response
+     */
+    async createSuperAdmin(data: CreateSuperAdminDto): Promise<AppResponse> {
+        return this.run(async () => {
+            const exists = await this.userRepo.findFirst({
+                role: UserRole.SUPER_ADMIN,
+            });
 
-      const passwordHash = await bcrypt.hash(data.password, 10);
+            if (exists) {
+                return this.error('Super admin already exists', StatusCodes.CONFLICT);
+            }
 
-      const { password, ...rest } = data;
-      const user = await this.userRepo.create({
-        ...rest,
-        passwordHash,
-        role: UserRole.SUPER_ADMIN,
-        status: UserStatus.ACTIVE,
-      });
+            const passwordHash = await bcrypt.hash(data.password, 10);
 
-      return this.success({
-        data: sanitizeAccount(user),
-        message: "Super admin created successfully",
-        code: StatusCodes.CREATED,
-      });
-    }, "Failed to create super admin");
-  }
+            const { password, ...rest } = data;
+            const user = await this.userRepo.create({
+                ...rest,
+                passwordHash,
+                role: UserRole.SUPER_ADMIN,
+                status: UserStatus.ACTIVE,
+            });
 
-  /**
-   * Registers a new user via self-service signup.
-   *
-   * Flow:
-   * - Creates User and Member records
-   * - Marks account as pending verification
-   * - Generates verification JWT
-   * - Sends activation email
-   *
-   * @param data - Signup payload
-   * @returns Standardized application response
-   */
-  async signupUser(
-    data: SignupUserDto,
-    tenantId: string,
-    tenant: Tenant,
-  ): Promise<AppResponse> {
-    return this.run(async () => {
-      const prisma = this.userRepo.prisma;
+            return this.success({
+                data: sanitizeAccount(user),
+                message: 'Super admin created successfully',
+                code: StatusCodes.CREATED,
+            });
+        }, 'Failed to create super admin');
+    }
 
-      let user: User | null = null;
-      let member: Member | null = null;
+    /**
+     * Registers a new user via self-service signup.
+     *
+     * Flow:
+     * - Creates User and Member records
+     * - Marks account as pending verification
+     * - Generates verification JWT
+     * - Sends activation email
+     *
+     * @param data - Signup payload
+     * @returns Standardized application response
+     */
+    async signupUser(data: SignupUserDto, tenantId: string, tenant: Tenant): Promise<AppResponse> {
+        return this.run(async () => {
+            const prisma = this.userRepo.prisma;
 
-      try {
-        const { password, email, branchId, ...memberData } = data;
+            let user: User | null = null;
+            let member: Member | null = null;
 
-        // Check if user already exists
-        const existingUser = await this.userRepo.findFirst({ email });
-        if (existingUser?.emailVerified) {
-          throw new Error("Email already in use");
-        }
+            try {
+                const { password, email, branchId, ...memberData } = data;
 
-        // Verify tenant exists
-        const tenantExists = await prisma.tenant.findUnique({
-          where: { id: tenantId },
-        });
-        if (!tenantExists) {
-          throw new Error("Tenant not found");
-        }
+                // Check if user already exists
+                const existingUser = await this.userRepo.findFirst({ email });
+                if (existingUser?.emailVerified) {
+                    throw new Error('Email already in use');
+                }
 
-        const passwordHash: string = await bcrypt.hash(password, 10);
+                // Verify tenant exists
+                const tenantExists = await prisma.tenant.findUnique({
+                    where: { id: tenantId },
+                });
+                if (!tenantExists) {
+                    throw new Error('Tenant not found');
+                }
 
-        // Create user
-        user = await this.userRepo.create({
-          email,
-          passwordHash,
-          role: data.role ?? UserRole.MEMBER,
-          status: UserStatus.PENDING,
-          tenant: {
-            connect: { id: tenantId },
-          },
-        });
+                const passwordHash: string = await bcrypt.hash(password, 10);
 
-        // Create member
-        member = await this.memberRepo.create({
-          ...memberData,
-          user: { connect: { id: user.id } },
-          tenant: { connect: { id: tenantId } },
-          ...(branchId && { branch: { connect: { id: branchId } } }),
-          memberNumber: `M-${Date.now()}`,
-          memberType: MemberType.MEMBER,
-          memberStatus: MemberStatus.ACTIVE,
-          email,
-        });
+                // Create user
+                user = await this.userRepo.create({
+                    email,
+                    passwordHash,
+                    role: data.role ?? UserRole.MEMBER,
+                    status: UserStatus.PENDING,
+                    tenant: {
+                        connect: { id: tenantId },
+                    },
+                });
 
-        // Link member to user
-        if (member?.id) {
-          await this.userRepo.update(
-            { id: user.id },
-            { member: { connect: { id: member.id } } },
-          );
-        }
+                // Create member
+                member = await this.memberRepo.create({
+                    ...memberData,
+                    user: { connect: { id: user.id } },
+                    tenant: { connect: { id: tenantId } },
+                    ...(branchId && { branch: { connect: { id: branchId } } }),
+                    memberNumber: `M-${Date.now()}`,
+                    memberType: MemberType.MEMBER,
+                    memberStatus: MemberStatus.ACTIVE,
+                    email,
+                });
 
-        // Send account verification email
-        const expiryMeta = getExpiryDateFromNow(
-          AppConfig.jwt.verifyAccountExpiresIn as StringValue,
-        );
+                // Link member to user
+                if (member?.id) {
+                    await this.userRepo.update({ id: user.id }, { member: { connect: { id: member.id } } });
+                }
 
-        const token = this.jwtService.generateAccessToken(
-          {
-            sub: user.id,
-            email: user.email,
-            role: user.role,
-            isNew: true,
-            type: "USER",
-          },
-          expiryMeta.duration,
-        );
+                // Send account verification email
+                const expiryMeta = getExpiryDateFromNow(AppConfig.jwt.verifyAccountExpiresIn as StringValue);
 
-        await this.mailService.activateNewAccountRequest({
-          token,
-          to: user.email,
-          firstName: memberData.firstName ?? "",
-          lastName: memberData.lastName ?? "",
-          expiryAt: expiryMeta.humanReadable,
-          logo: tenantExists.logo ?? "",
-          organizationName: tenantExists.name,
-        });
+                const token = this.jwtService.generateAccessToken(
+                    {
+                        sub: user.id,
+                        email: user.email,
+                        role: user.role,
+                        isNew: true,
+                        type: 'USER',
+                    },
+                    expiryMeta.duration,
+                );
 
-        // sync community
-        try {
-          if (data?.branchId) {
-            this.syncCommunity(data, member, tenant, data.branchId);
-          }
-        } catch (error) {}
+                await this.mailService.activateNewAccountRequest({
+                    token,
+                    to: user.email,
+                    firstName: memberData.firstName ?? '',
+                    lastName: memberData.lastName ?? '',
+                    expiryAt: expiryMeta.humanReadable,
+                    logo: tenantExists.logo ?? '',
+                    organizationName: tenantExists.name,
+                });
 
-        return this.success({
-          data: { user, member, tenant: tenantExists },
-          message: "Signup successful, please verify your account",
-          code: 201,
-        });
-      } catch (error) {
-        // COMPENSATING ACTIONS (ROLLBACK)
-        if (member) {
-          await prisma.member
-            .delete({ where: { id: member.id } })
-            .catch(() => undefined);
-        }
-        if (user) {
-          await prisma.user
-            .delete({ where: { id: user.id } })
-            .catch(() => undefined);
-        }
+                // sync community
+                try {
+                    if (data?.branchId) {
+                        this.syncCommunity(data, member, tenant, data.branchId);
+                    }
+                } catch (error) {}
 
-        return this.error((error as Error).message || "Failed to signup user");
-      }
-    }, "Failed to signup user");
-  }
+                return this.success({
+                    data: { user, member, tenant: tenantExists },
+                    message: 'Signup successful, please verify your account',
+                    code: 201,
+                });
+            } catch (error) {
+                // COMPENSATING ACTIONS (ROLLBACK)
+                if (member) {
+                    await prisma.member.delete({ where: { id: member.id } }).catch(() => undefined);
+                }
+                if (user) {
+                    await prisma.user.delete({ where: { id: user.id } }).catch(() => undefined);
+                }
 
-  /**
-   * Retrieves a user by ID with associated member and role data.
-   *
-   * @param id - User identifier
-   * @returns Standardized application response
-   */
-  async findById(id: string): Promise<AppResponse> {
-    return this.run(async () => {
-      const user = await this.userRepo.findById(
-        { id },
-        { include: { member: true, userRole: true } },
-      );
+                return this.error((error as Error).message || 'Failed to signup user');
+            }
+        }, 'Failed to signup user');
+    }
 
-      if (!user) {
-        return this.error("User not found", StatusCodes.NOT_FOUND);
-      }
+    /**
+     * Retrieves a user by ID with associated member and role data.
+     *
+     * @param id - User identifier
+     * @returns Standardized application response
+     */
+    async findById(id: string): Promise<AppResponse> {
+        return this.run(async () => {
+            const user = await this.userRepo.findById({ id }, { include: { member: true, userRole: true } });
 
-      return this.success({ data: sanitizeAccount(user) });
-    }, "Failed to fetch user");
-  }
+            if (!user) {
+                return this.error('User not found', StatusCodes.NOT_FOUND);
+            }
 
-  /**
-   * Updates user and member profile data atomically.
-   *
-   * @param id - User identifier
-   * @param data - Update payload
-   * @returns Standardized application response
-   */
+            return this.success({ data: sanitizeAccount(user) });
+        }, 'Failed to fetch user');
+    }
 
-  async updateUser(id: string, data: UpdateUserDto): Promise<AppResponse> {
-    return this.run(async () => {
-      const { email, role, status, twoFactorEnabled, ...memberData } = data;
+    /**
+     * Updates user and member profile data atomically.
+     *
+     * @param id - User identifier
+     * @param data - Update payload
+     * @returns Standardized application response
+     */
 
-      const updatedUser = await this.userRepo.prisma.$transaction(
-        async (tx) => {
-          const userUpdate = await tx.user.update({
-            where: { id },
-            data: { email, role, status, twoFactorEnabled },
-          });
+    async updateUser(id: string, data: UpdateUserDto): Promise<AppResponse> {
+        return this.run(async () => {
+            const { email, role, status, twoFactorEnabled, ...memberData } = data;
 
-          await tx.member.updateMany({
-            where: { userId: id },
-            data: memberData,
-          });
+            const updatedUser = await this.userRepo.prisma.$transaction(async (tx) => {
+                const userUpdate = await tx.user.update({
+                    where: { id },
+                    data: { email, role, status, twoFactorEnabled },
+                });
 
-          return userUpdate;
-        },
-      );
+                await tx.member.updateMany({
+                    where: { userId: id },
+                    data: memberData,
+                });
 
-      return this.success({
-        data: sanitizeAccount(updatedUser),
-        message: "User updated successfully",
-      });
-    }, "Failed to update user");
-  }
+                return userUpdate;
+            });
 
-  /**
-   * Permanently deletes a user and all associated member records.
-   *
-   * @param id - User identifier
-   * @returns Standardized application response
-   */
-  async deleteUser(id: string): Promise<AppResponse> {
-    return this.run(async () => {
-      await this.userRepo.prisma.$transaction(async (tx) => {
-        await tx.member.deleteMany({ where: { userId: id } });
-        await tx.user.delete({ where: { id } });
-      });
+            return this.success({
+                data: sanitizeAccount(updatedUser),
+                message: 'User updated successfully',
+            });
+        }, 'Failed to update user');
+    }
 
-      return this.success({ message: "User deleted successfully" });
-    }, "Failed to delete user");
-  }
+    /**
+     * Permanently deletes a user and all associated member records.
+     *
+     * @param id - User identifier
+     * @returns Standardized application response
+     */
+    async deleteUser(id: string): Promise<AppResponse> {
+        return this.run(async () => {
+            await this.userRepo.prisma.$transaction(async (tx) => {
+                await tx.member.deleteMany({ where: { userId: id } });
+                await tx.user.delete({ where: { id } });
+            });
+
+            return this.success({ message: 'User deleted successfully' });
+        }, 'Failed to delete user');
+    }
 }

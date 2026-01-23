@@ -54,7 +54,7 @@ export class CommunityMemberService extends Service {
                 id: communityId,
                 tenantId: tenant.id,
             });
-      
+
             if (!communityExisting) {
                 throw new Error(`Community with ID "${communityId}" not found or you do not have permission`);
             }
@@ -79,7 +79,6 @@ export class CommunityMemberService extends Service {
                             branchId: communityExisting.branchId,
                         }),
                     });
-                
 
                     if (!memberExisting) {
                         throw new Error('Member not found or does not belong to community branch');
@@ -104,9 +103,7 @@ export class CommunityMemberService extends Service {
                         status: 'success',
                         data: member,
                     });
-                  
                 } catch (error: unknown) {
-                 
                     report.push({
                         memberId,
                         status: 'failed',
@@ -138,7 +135,7 @@ export class CommunityMemberService extends Service {
         try {
             // Notify new member
             try {
-             const sendToMember=   await this.mailService.newCommunityMemberMsg({
+                const sendToMember = await this.mailService.newCommunityMemberMsg({
                     to: member.email,
                     email: member.email,
                     organizationName: tenant.name,
@@ -148,7 +145,6 @@ export class CommunityMemberService extends Service {
                     logo: tenant.logo ?? '',
                     communityName: community.name,
                 });
-  
             } catch (_) {}
 
             if (!notifyAll) {
