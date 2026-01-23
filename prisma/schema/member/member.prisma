@@ -14,6 +14,7 @@ model Member {
   gender      Gender?
   address     String?
   city        String?
+  location    String?
   state       String?
   country     String?
   postalCode  String?

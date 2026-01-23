@@ -79,7 +79,11 @@ export class CommunityService extends Service {
         }
     }
 
-    async createCommunity(data: CreateCommunityDto, tenant: Tenant, actingUserId: string): Promise<AppResponse> {
+    async createCommunity(
+        data: CreateCommunityDto,
+        tenant: Tenant,
+        actingUserId?: string,
+    ): Promise<AppResponse<Community>> {
         return this.run(async () => {
             await this.validateUniqueCommunityName(data.branchId, data.name);
             await this.validateUniqueCommunityInfo(data);
@@ -108,9 +112,11 @@ export class CommunityService extends Service {
                 ...(branchId && { branch: { connect: { id: data.branchId } } }),
                 ...communityInfo,
                 type: data.type,
-                creator: {
-                    connect: { id: actingUserId },
-                },
+                ...(actingUserId && {
+                    creator: {
+                        connect: { id: actingUserId },
+                    },
+                }),
             };
 
             const community = await this.communityRepo.create(communityData);
@@ -125,6 +131,7 @@ export class CommunityService extends Service {
                             role: 'MEMBER',
                         },
                         tenant,
+                        false,
                     );
                 } catch (error) {}
             }

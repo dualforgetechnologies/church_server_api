@@ -32,6 +32,7 @@ export const baseMemberFields = {
     gender: zGender.optional(),
     address: z.string().optional(),
     city: z.string().optional(),
+    location: z.string().optional(),
     state: z.string().optional(),
     country: z.string().optional(),
     postalCode: z.string().optional(),
@@ -44,12 +45,8 @@ export const baseMemberFields = {
 
     preferredLanguage: z.string().default('en'),
     profilePhoto: z.string().url().optional(),
-    biometricId: z.string().optional(),
     privacySettings: z.record(z.any()).optional(),
     notificationSettings: z.record(z.any()).optional(),
-    cellId: z.string().optional(),
-    ministryId: z.string().optional(),
-    departmentId: z.string().optional(),
 };
 
 export const signupUserDto = z.object({

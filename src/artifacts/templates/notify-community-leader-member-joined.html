@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>New Member Joined Your Community</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" />
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #f8fafc;
+      font-family: 'Inter', sans-serif;
+      color: #334155;
+    }
+    .container {
+      max-width: 600px;
+      margin: 20px auto;
+      background: #ffffff;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+      border: 1px solid #e2e8f0;
+    }
+    .header {
+      background: #f1f5f9;
+      padding: 24px 20px;
+      text-align: center;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    .header img {
+      max-width: 100px;
+      margin-bottom: 10px;
+    }
+    .header h4 {
+      font-size: 14px;
+      font-weight: 600;
+      color: #0f172a;
+      margin: 0;
+    }
+    .content {
+      padding: 30px 24px;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    .content h4 {
+      margin-top: 0;
+      font-weight: 600;
+      color: #0f172a;
+    }
+    .content p {
+      margin-bottom: 16px;
+      color: #475569;
+    }
+    .details {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      padding: 14px;
+      margin: 16px 0 24px;
+    }
+    .details li {
+      list-style: none;
+      margin-bottom: 8px;
+    }
+    .details strong {
+      color: #0f172a;
+      font-weight: 500;
+    }
+    .btn-container {
+      text-align: center;
+      margin: 24px 0;
+    }
+    .btn {
+      padding: 8px 24px;
+      background: linear-gradient(135deg, #b3cbf1 0%, #6089e4 100%);
+      color: #fff !important;
+      font-weight: 600;
+      font-size: 13px;
+      border-radius: 6px;
+      text-decoration: none;
+      display: inline-block;
+      box-shadow: 0 3px 10px rgba(37, 99, 235, 0.15);
+    }
+    .btn:hover {
+      background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+      box-shadow: 0 5px 14px rgba(37, 99, 235, 0.25);
+    }
+    .signature {
+      margin-top: 30px;
+      color: #475569;
+    }
+    .signature strong {
+      color: #0f172a;
+    }
+    .footer {
+      background: #f1f5f9;
+      padding: 14px;
+      text-align: center;
+      font-size: 12px;
+      color: #64748b;
+      border-top: 1px solid #e2e8f0;
+    }
+    .footer a {
+      color: #3b82f6;
+      font-weight: 500;
+      text-decoration: none;
+    }
+    .footer p {
+      margin: 6px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <img src="{{ORGANIZATION_LOGO}}" alt="{{ORGANIZATION_NAME}} Logo" />
+      <h4>{{ORGANIZATION_NAME}}</h4>
+    </div>
+
+    <div class="content">
+      <h4>Hello {{LEADER_NAME}},</h4>
+
+      <p>
+        A new member has just joined your community on
+        <strong>{{ORGANIZATION_NAME}}</strong>.
+      </p>
+
+      <div class="details">
+        <ul>
+          <li><strong>Community:</strong> {{COMMUNITY_NAME}}</li>
+          <li><strong>Member Name:</strong> {{MEMBER_NAME}}</li>
+          <li><strong>Member Role:</strong> {{ROLE_NAME}}</li>
+          <li><strong>Joined On:</strong> {{JOINED_DATE}}</li>
+        </ul>
+      </div>
+
+      <p>
+        You can review member details, manage roles, or engage with your community directly from your dashboard.
+      </p>
+
+<!--
+<div class="btn-container">
+  <a href="{{COMMUNITY_DASHBOARD_LINK}}" class="btn">
+    Manage Community
+  </a>
+</div>
+-->
+
+      <div class="signature">
+        <p>Best regards,</p>
+        <p><strong>The {{ORGANIZATION_NAME}} Team</strong></p>
+      </div>
+    </div>
+
+    <div class="footer">
+      <p>
+        Need help? Contact us at
+        <a href="mailto:{{SUPPORT_MAIL}}">{{SUPPORT_MAIL}}</a>
+      </p>
+      <p>&copy; {{CURRENT_YEAR}} {{ORGANIZATION_NAME}}. All rights reserved.</p>
+    </div>
+  </div>
+</body>
+</html>

@@ -4,7 +4,7 @@ model Community {
   branchId          String?
   type              CommunityType
   status            CommunityStatus @default(ACTIVE)
-  name              String @unique
+  name              String          @unique
   description       String?
   tagline           String? // Short description or slogan
   leaderId          String?
@@ -208,7 +208,6 @@ enum CommunityStatus {
   ARCHIVED
   SUSPENDED
 }
-
 
 enum Month {
   JANUARY

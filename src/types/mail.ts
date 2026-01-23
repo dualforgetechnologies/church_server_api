@@ -13,6 +13,7 @@ export enum EmailTemplateName {
     COMMUNITY_NEW_MEMBER = 'community-new-member',
     PURCHASE_ORDER_NOTIFICATION = 'purchase-order-notification',
     NEW_MP_CHAT_ALERT = 'mp-chat-message-alert',
+    NOTIFY_COMMUNITY_LEADER_MEMBER_JOINED = 'notify-community-leader-member-joined',
 }
 
 export interface BaseMailOptions {
@@ -58,6 +59,16 @@ export interface NewCommunityMember extends BaseMailOptions {
     lastName: string;
     role: string;
     communityName: string;
+}
+
+export interface NotifyCommunityLeaderMemberJoined extends BaseMailOptions {
+    email: string;
+    leaderName: string;
+    memberName: string;
+    communityName: string;
+    role: string;
+    joinDate: string;
+    link?: string;
 }
 
 export interface ResetAccountPassword extends BaseMailOptions {
@@ -120,5 +131,8 @@ export type MailTemplateParamKey =
     | 'MESSAGE_SNIPPET'
     | 'ORGANIZATION_ADDRESS'
     | 'ORGANIZATION_LOGO'
-    | 'COMMUNITY_NAME';
+    | 'COMMUNITY_NAME'
+    | 'MEMBER_NAME'
+    | 'JOINED_DATE';
+
 export type TemplateParams = Partial<Record<MailTemplateParamKey, string | number>>;

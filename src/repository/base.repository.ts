@@ -59,8 +59,17 @@ export abstract class BaseRepository<
 
         return this.model.findFirst(query);
     }
-    async findFirst(where?: TWhereInput, orderBy?: TOrderByInput): Promise<TModel | null> {
-        return this.model.findFirst({ where, orderBy });
+    async findFirst<TInclude = undefined, TSelect = undefined>(
+        where?: TWhereInput,
+        orderBy?: TOrderByInput,
+        options?: { include?: TInclude; select?: TSelect },
+    ): Promise<TModel | null> {
+        return this.model.findFirst({
+            where,
+            orderBy,
+            ...(options?.include && { include: options.include }),
+            ...(options?.select && { select: options.select }),
+        });
     }
 
     async exists(where: TWhereInput): Promise<boolean> {

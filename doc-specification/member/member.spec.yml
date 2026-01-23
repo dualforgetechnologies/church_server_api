@@ -135,6 +135,7 @@ components:
             address: { type: string, nullable: true }
             city: { type: string, nullable: true }
             state: { type: string, nullable: true }
+            location: { type: string, nullable: true  }
             country: { type: string, nullable: true }
             postalCode: { type: string, nullable: true }
             profession: { type: string, nullable: true }
@@ -174,16 +175,13 @@ components:
         address: { type: string }
         city: { type: string }
         state: { type: string }
+        location: { type: string, nullable: true  }
         country: { type: string }
         postalCode: { type: string }
         profession: { type: string }
         maritalStatus: { $ref: '#/components/schemas/MaritalStatus' }
         memberType: { $ref: '#/components/schemas/MemberType' }
         memberStatus: { $ref: '#/components/schemas/MemberStatus' }
-        cellId: { type: string }
-        ministryId: { type: string }
-        departmentId: { type: string }
-        biometricId: { type: string }
         baptismDate: { type: string, format: date }
         preferredLanguage: { type: string }
         profilePhoto: { type: string, format: uri }

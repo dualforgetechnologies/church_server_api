@@ -1,6 +1,6 @@
 import Logger from '@/config/logger';
 import { AppResponse } from '@/types/types';
-import { CommunityMember, Prisma, PrismaClient, Tenant } from '@prisma/client';
+import { Community, CommunityMember, Member, Prisma, PrismaClient, Tenant } from '@prisma/client';
 import { Service } from '../base/service.base';
 
 import {
@@ -41,7 +41,11 @@ export class CommunityMemberService extends Service {
         }
     }
 
-    async createCommunityMembers(data: CreateCommunityMemberDto, tenant: Tenant): Promise<AppResponse> {
+    async createCommunityMembers(
+        data: CreateCommunityMemberDto,
+        tenant: Tenant,
+        notifyAll: boolean,
+    ): Promise<AppResponse> {
         return this.run(async () => {
             const { communityId, membersIds, role, ...rest } = data;
 
@@ -50,6 +54,7 @@ export class CommunityMemberService extends Service {
                 id: communityId,
                 tenantId: tenant.id,
             });
+      
             if (!communityExisting) {
                 throw new Error(`Community with ID "${communityId}" not found or you do not have permission`);
             }
@@ -74,6 +79,7 @@ export class CommunityMemberService extends Service {
                             branchId: communityExisting.branchId,
                         }),
                     });
+                
 
                     if (!memberExisting) {
                         throw new Error('Member not found or does not belong to community branch');
@@ -85,27 +91,22 @@ export class CommunityMemberService extends Service {
                         community: { connect: { id: communityId } },
                         role: role ?? 'MEMBER',
                     });
-                    if (member) {
-                        try {
-                            this.mailService.newCommunityMemberMsg({
-                                to: memberExisting.email,
-                                email: memberExisting.email,
-                                organizationName: tenant.name,
-                                role: role ?? 'MEMBER',
-                                firstName: memberExisting.firstName ?? '',
-                                lastName: memberExisting.lastName ?? '',
-                                logo: tenant.logo ?? '',
-                                communityName: communityExisting.name,
-                            });
-                        } catch (err) {}
-                    }
 
+                    this.notifyCommunityOnJoin({
+                        community: communityExisting,
+                        member: memberExisting,
+                        communityMember: member,
+                        notifyAll,
+                        tenant,
+                    });
                     report.push({
                         memberId,
                         status: 'success',
                         data: member,
                     });
+                  
                 } catch (error: unknown) {
+                 
                     report.push({
                         memberId,
                         status: 'failed',
@@ -119,6 +120,95 @@ export class CommunityMemberService extends Service {
                 message: 'Community member operation report',
             });
         }, 'Failed to add community members');
+    }
+
+    async notifyCommunityOnJoin({
+        community,
+        member,
+        communityMember,
+        notifyAll,
+        tenant,
+    }: {
+        community: Community;
+        member: Member;
+        communityMember: CommunityMember;
+        notifyAll: boolean;
+        tenant: Tenant;
+    }) {
+        try {
+            // Notify new member
+            try {
+             const sendToMember=   await this.mailService.newCommunityMemberMsg({
+                    to: member.email,
+                    email: member.email,
+                    organizationName: tenant.name,
+                    role: communityMember.role ?? 'MEMBER',
+                    firstName: member.firstName ?? '',
+                    lastName: member.lastName ?? '',
+                    logo: tenant.logo ?? '',
+                    communityName: community.name,
+                });
+  
+            } catch (_) {}
+
+            if (!notifyAll) {
+                return;
+            }
+
+            // Community leaders from communityMember
+            const comLeaders = await prisma?.communityMember.findMany({
+                where: {
+                    communityId: community.id,
+                    role: {
+                        in: ['LEADER', 'ASSISTANT_LEADER'],
+                    },
+                },
+                include: {
+                    member: true,
+                },
+            });
+
+            const leaders: Member[] = (comLeaders ?? []).map((el) => el.member).filter(Boolean);
+
+            // Default leaders from community fields
+            const defaultLeaders = await prisma?.member.findMany({
+                where: {
+                    id: {
+                        in: [community.leaderId ?? '', community.assistantLeaderId ?? ''].filter(Boolean),
+                    },
+                },
+            });
+
+            // Merge + dedupe by member.id
+            const leaderMap = new Map<string, Member>();
+
+            for (const l of leaders) {
+                leaderMap.set(l.id, l);
+            }
+
+            for (const l of defaultLeaders ?? []) {
+                leaderMap.set(l.id, l);
+            }
+
+            const uniqueLeaders = Array.from(leaderMap.values());
+
+            // Notify leaders
+            for (const l of uniqueLeaders) {
+                try {
+                    await this.mailService.notifyCommunityLeaderMemberJoined({
+                        to: l.email,
+                        email: l.email,
+                        organizationName: tenant.name,
+                        role: communityMember.role ?? 'MEMBER',
+                        leaderName: `${l.firstName ?? ''} ${l.lastName ?? ''}`.trim(),
+                        memberName: `${member.firstName ?? ''} ${member.lastName ?? ''}`.trim(),
+                        communityName: community.name ?? community.type,
+                        joinDate: communityMember.joinedAt.toISOString(),
+                        logo: tenant.logo ?? '',
+                    });
+                } catch (_) {}
+            }
+        } catch (_) {}
     }
 
     async updateCommunityMember(

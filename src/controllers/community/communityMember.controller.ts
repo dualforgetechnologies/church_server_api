@@ -39,7 +39,7 @@ export class CommunityMemberController extends Controller {
                 });
             }
 
-            const result = await this.communityMemberService.createCommunityMembers(payload, req.tenant);
+            const result = await this.communityMemberService.createCommunityMembers(payload, req.tenant, false);
             return this.response(res, result);
         } catch (error) {
             return this.error({

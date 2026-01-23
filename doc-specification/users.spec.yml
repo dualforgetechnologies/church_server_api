@@ -212,6 +212,7 @@ components:
         phone: { type: string }
         address: { type: string }
         city: { type: string }
+        location: { type: string }
         state: { type: string }
         country: { type: string }
         postalCode: { type: string }
@@ -219,16 +220,13 @@ components:
         baptismDate: { type: string, format: date }
         preferredLanguage: { type: string, default: en }
         profilePhoto: { type: string, format: uri }
-        biometricId: { type: string }
         privacySettings:
           type: object
           additionalProperties: true
         notificationSettings:
           type: object
           additionalProperties: true
-        cellId: { type: string }
-        ministryId: { type: string }
-        departmentId: { type: string }
+ 
 
     CreateUserDto:
       allOf:
