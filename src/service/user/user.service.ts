@@ -213,7 +213,7 @@ export class UserService extends Service {
             // Helper to attach member to a community safely
             const attachToCommunity = async (community: Community | null, dto: CreateCommunityDto) => {
                 let useCommunity: Community | undefined = community ?? undefined;
-                if (!community) {
+                if (!community?.id) {
                     try {
                         const result = await this.communityService.createCommunity(dto, tenant);
                         if (result.success === true) {
@@ -242,51 +242,56 @@ export class UserService extends Service {
             };
 
             // 1 CELL community
-            if (location) {
-                const query = {
-                    location,
-                    type: 'CELL' as CommunityType,
-                    branchId,
-                };
-                const dto: CreateCommunityDto = {
-                    ...query,
-                    status: 'ACTIVE',
-                    name: `${formatReadableLabel(location)} cell community`,
-                    membersIds: [],
-                };
-                const cellCommunity = await this.communityRepo.findFirst({
-                    tenantId: tenant.id,
-                    ...query,
-                });
-                // create if not existing
-                await attachToCommunity(cellCommunity, dto);
-            }
-
-            // 2 TRIBE community (based on birth month)
-            if (dateOfBirth) {
-                const birthMonth = toMonthString(dateOfBirth); // returns 'JANUARY', 'FEBRUARY',
-                if (birthMonth) {
+            try {
+                if (location) {
                     const query = {
-                        month: birthMonth,
-                        type: 'TRIBE' as CommunityType,
+                        location,
+                        type: 'CELL' as CommunityType,
                         branchId,
                     };
                     const dto: CreateCommunityDto = {
                         ...query,
                         status: 'ACTIVE',
-                        name: `${formatReadableLabel(birthMonth ?? '')} tribe community`,
+                        name: `${formatReadableLabel(location)} cell community`,
                         membersIds: [],
                     };
-
-                    const tribeCommunity = await this.communityRepo.findFirst({
+                    const cellCommunity = await this.communityRepo.findFirst({
                         tenantId: tenant.id,
                         ...query,
                     });
-                    await attachToCommunity(tribeCommunity, dto);
+                    // create if not existing
+                    await attachToCommunity(cellCommunity, dto);
                 }
-            }
+            } catch (error) {}
+
+            // 2 TRIBE community (based on birth month)
+            try {
+                if (dateOfBirth) {
+                    const birthMonth = toMonthString(dateOfBirth); // returns 'JANUARY', 'FEBRUARY',
+                    if (birthMonth) {
+                        const query = {
+                            month: birthMonth,
+                            type: 'TRIBE' as CommunityType,
+                            branchId,
+                        };
+                        const dto: CreateCommunityDto = {
+                            ...query,
+                            status: 'ACTIVE',
+                            name: `${formatReadableLabel(birthMonth ?? '')} tribe community`,
+                            membersIds: [],
+                        };
+
+                        const tribeCommunity = await this.communityRepo.findFirst({
+                            tenantId: tenant.id,
+                            ...query,
+                        });
+                        await attachToCommunity(tribeCommunity, dto);
+                    }
+                }
+            } catch (error) {}
 
             // 3 PROFESSION community
+
             try {
                 if (profession) {
                     const query = {

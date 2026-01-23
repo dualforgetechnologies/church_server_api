@@ -1,10 +1,10 @@
 model Community {
   id                String          @id @default(cuid())
   tenantId          String
-  branchId          String?
+  branchId          String
   type              CommunityType
   status            CommunityStatus @default(ACTIVE)
-  name              String          @unique
+  name              String
   description       String?
   tagline           String? // Short description or slogan
   leaderId          String?
@@ -35,12 +35,13 @@ model Community {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  tenant Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  branch Branch? @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  branch Branch @relation(fields: [branchId], references: [id], onDelete: Cascade)
 
   members CommunityMember[]
   creator User?             @relation(fields: [createdBy], references: [id])
 
+  @@unique([name, type, branchId, tenantId])
   @@index([tenantId])
   @@index([branchId])
   @@index([type])

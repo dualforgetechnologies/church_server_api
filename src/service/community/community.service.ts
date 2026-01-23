@@ -1,5 +1,5 @@
 import Logger from '@/config/logger';
-import { Community, Month, Prisma, PrismaClient, Tenant } from '@prisma/client';
+import { Community, CommunityType, Month, Prisma, PrismaClient, Tenant } from '@prisma/client';
 
 import { CommunityListQueryDto, CreateCommunityDto, UpdateCommunityDto } from '@/DTOs/community/community.dto';
 import { CommunityRepository } from '@/repository/community/community.repository';
@@ -20,13 +20,14 @@ export class CommunityService extends Service {
     private async validateUniqueCommunityName(
         branchId: string,
         name: string,
+        type: CommunityType,
         excludeId?: string,
         compareTo?: Community,
     ) {
         const existing = await this.communityRepo.findFirst({
             branchId,
             name,
-            id: excludeId ? { not: excludeId } : undefined,
+            type,
         });
         if (existing) {
             if (compareTo) {
@@ -85,7 +86,7 @@ export class CommunityService extends Service {
         actingUserId?: string,
     ): Promise<AppResponse<Community>> {
         return this.run(async () => {
-            await this.validateUniqueCommunityName(data.branchId, data.name);
+            await this.validateUniqueCommunityName(data.branchId, data.name, data.type);
             await this.validateUniqueCommunityInfo(data);
 
             // Prepare community data
@@ -109,7 +110,7 @@ export class CommunityService extends Service {
             const communityData: Prisma.CommunityCreateInput = {
                 ...rest,
                 tenant: { connect: { id: tenant.id } },
-                ...(branchId && { branch: { connect: { id: data.branchId } } }),
+                branch: { connect: { id: data.branchId } },
                 ...communityInfo,
                 type: data.type,
                 ...(actingUserId && {
@@ -148,7 +149,7 @@ export class CommunityService extends Service {
             if (!existing) {
                 throw new Error(`Community with ID "${id}" not found`);
             }
-            await this.validateUniqueCommunityName(data.branchId, data.name, undefined, existing);
+            await this.validateUniqueCommunityName(data.branchId, data.name, data.type, undefined, existing);
             await this.validateUniqueCommunityInfo(data, existing);
 
             const { branchId, type, gender, profession, location, country, month } = data;
@@ -169,7 +170,7 @@ export class CommunityService extends Service {
             }
 
             if (data.name) {
-                await this.validateUniqueCommunityName(branchId, data.name, id, existing);
+                await this.validateUniqueCommunityName(branchId, data.name, data.type, id, existing);
             }
 
             const updated = await this.communityRepo.update(
