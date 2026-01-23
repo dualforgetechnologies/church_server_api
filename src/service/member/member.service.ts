@@ -62,7 +62,7 @@ export class MemberService extends Service {
      * @param data - Member update DTO
      * @returns AppResponse containing the updated member
      */
-    async updateMember(id: string, data: UpdateMemberDto): Promise<AppResponse> {
+    async updateMember(id: string, data: UpdateMemberDto,tenantId:string): Promise<AppResponse> {
         return this.run(async () => {
             const existing = await this.memberRepo.findById({ id });
             if (!existing) {
@@ -72,13 +72,13 @@ export class MemberService extends Service {
             if (data.branchId) {
                 await this.validateBranch(data.branchId, existing.tenantId);
             }
-
+            const {branchId,...rest}=data
             const updateData: Prisma.MemberUpdateInput = {
-                ...data,
+                ...rest,
                 ...(data.branchId ? { branch: { connect: { id: data.branchId } } } : {}),
             };
 
-            const updated = await this.memberRepo.update({ id }, updateData);
+            const updated = await this.memberRepo.update({ id ,tenantId}, updateData);
 
             return this.success({ data: updated, message: 'Member updated successfully' });
         }, 'Failed to update member');

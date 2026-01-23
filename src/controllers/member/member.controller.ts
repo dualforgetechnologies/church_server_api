@@ -27,7 +27,7 @@ export class MemberController extends Controller {
         try {
             const { id } = req.params;
             const payload = req.body as UpdateMemberDto;
-            const result = await this.memberService.updateMember(id, payload);
+            const result = await this.memberService.updateMember(id, payload,req.tenantId);
             return this.response(res, result);
         } catch (error) {
             return this.error({
