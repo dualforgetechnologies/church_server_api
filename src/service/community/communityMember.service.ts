@@ -343,8 +343,9 @@ export class CommunityMemberService extends Service {
     async removeCommunityMember(communityId: string, memberId: string, tenantId: string): Promise<AppResponse> {
         return this.run(async () => {
             // Validate member exists and belongs to tenant
-            const existing = await this.communityMemberRepo.findById({
-                communityId_memberId: { communityId, memberId },
+            const existing = await this.communityMemberRepo.findFirst({
+                communityId,
+                memberId,
                 community: { tenantId },
             });
             if (!existing) {

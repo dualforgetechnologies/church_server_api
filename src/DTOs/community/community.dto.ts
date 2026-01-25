@@ -54,6 +54,7 @@ export const updateCommunityDto = z.object({
 
 export const communityListQueryDto = commonPaginationQueryDto.extend({
     branchId: z.string().optional(),
+    memberId: z.string().optional(),
     type: zCommunityType.optional(),
     status: zCommunityStatus.optional(),
     profession: zProfessionType.optional(),

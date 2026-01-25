@@ -5,7 +5,7 @@ import Logger from '@/config/logger';
 import { MemberService } from '@/service/member/member.service';
 import { Controller } from '../controller';
 
-import { MemberListQueryDto, UpdateMemberDto } from '@/DTOs/member';
+import { MemberListQueryDto, UpdateMemberCommunityDto, UpdateMemberDto } from '@/DTOs/member';
 
 export class MemberController extends Controller {
     private readonly memberService: MemberService;
@@ -83,6 +83,35 @@ export class MemberController extends Controller {
                 error,
                 logger: this.logger,
                 message: 'Failed to retrieve members',
+            });
+        }
+    };
+
+    /**
+     * Update member community memberships (profession, cell, tribe, ministry)
+     */
+    updateMemberCommunity = async (req: Request, res: Response) => {
+        try {
+            const { id } = req.params;
+            const payload = req.body as UpdateMemberCommunityDto;
+
+            if (!req.tenant) {
+                return this.error({
+                    res,
+                    logger: this.logger,
+                    message: 'Authenticated tenant context is required',
+                });
+            }
+
+            const result = await this.memberService.updateMemberCommunityDto(id, payload, req.tenant);
+
+            return this.response(res, result);
+        } catch (error) {
+            return this.error({
+                res,
+                error,
+                logger: this.logger,
+                message: 'Failed to update member communities',
             });
         }
     };

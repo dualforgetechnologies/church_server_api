@@ -43,6 +43,9 @@ paths:
         - name: branchId
           in: query
           schema: { type: string }
+        - name: memberId
+          in: query
+          schema: { type: string }
         - name: type
           in: query
           schema: { $ref: '#/components/schemas/CommunityType' }

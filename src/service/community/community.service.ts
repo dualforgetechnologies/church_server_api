@@ -4,6 +4,7 @@ import { Community, CommunityType, Month, Prisma, PrismaClient, Tenant } from '@
 import { CommunityListQueryDto, CreateCommunityDto, UpdateCommunityDto } from '@/DTOs/community/community.dto';
 import { CommunityRepository } from '@/repository/community/community.repository';
 import { AppResponse } from '@/types/types';
+import { StatusCodes } from 'http-status-codes';
 import { Service } from '../base/service.base';
 import { CommunityMemberService } from './communityMember.service';
 
@@ -187,10 +188,15 @@ export class CommunityService extends Service {
         }, 'Failed to update community');
     }
 
-    async getCommunityById(id: string, tenantId: string, includeMembers = false): Promise<AppResponse> {
+    async getCommunityById(
+        id: string,
+        tenantId: string,
+        includeMembers = false,
+        type?: CommunityType,
+    ): Promise<AppResponse<Community>> {
         return this.run(async () => {
             const community = await this.communityRepo.findById<Prisma.CommunityInclude>(
-                { id, tenantId },
+                { id, tenantId, ...(type && { type }) },
                 {
                     include: {
                         creator: {
@@ -205,7 +211,7 @@ export class CommunityService extends Service {
                 },
             );
             if (!community) {
-                throw new Error(`Community with ID "${id}" not found`);
+                return this.error(`Community with ID "${id}" not found`, StatusCodes.NOT_FOUND);
             }
             return this.success({
                 data: community,
@@ -216,11 +222,31 @@ export class CommunityService extends Service {
 
     async listCommunities(query: CommunityListQueryDto, tenantId: string): Promise<AppResponse> {
         return this.run(async () => {
-            const { page = 1, limit = 20, sortBy = 'createdAt', sortOrder = 'desc', search, ...filters } = query;
+            const {
+                page = 1,
+                limit = 20,
+                sortBy = 'createdAt',
+                sortOrder = 'desc',
+                branchId,
+                search,
+                memberId,
+                ...filters
+            } = query;
 
             const where: Prisma.CommunityWhereInput = {
                 ...filters,
                 tenantId,
+                ...(branchId && {
+                    branchId,
+                }),
+
+                ...(memberId && {
+                    members: {
+                        some: {
+                            memberId,
+                        },
+                    },
+                }),
                 ...(search && {
                     OR: [
                         {

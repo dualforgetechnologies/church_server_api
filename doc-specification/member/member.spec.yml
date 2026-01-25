@@ -95,6 +95,58 @@ paths:
         '401': { description: Unauthorized }
         '404': { description: Member not found }
 
+
+  /api/v1/members/{id}/communities:
+    patch:
+      tags: [Members]
+      summary: Update member community memberships
+      description: Add or remove a member from communities such as profession, tribe, cell, or ministry.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            description: ID of the member to update
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateMemberCommunityDto'
+      responses:
+        '200':
+          description: Member community update process completed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    description: List of steps showing success/failure for each community update
+                    items:
+                      type: object
+                      properties:
+                        step:
+                          type: string
+                          description: Step name
+                        success:
+                          type: boolean
+                          description: Whether the step succeeded
+                        message:
+                          type: string
+                          description: Optional message for failures or info
+                  message:
+                    type: string
+                    example: Member update process completed
+        '400': { description: Validation error or member not found }
+        '401': { description: Unauthorized }
+        '403': { description: Forbidden (insufficient role) }
+
+
 components:
   schemas:
     Gender:
@@ -261,3 +313,19 @@ components:
           properties:
             success: { example: false }
             data: { nullable: true }
+
+    UpdateMemberCommunityDto:
+      type: object
+      properties:
+        professionCommunityId:
+          type: string
+          description: ID of the profession community
+        tribeCommunityId:
+          type: string
+          description: ID of the tribe community
+        cellCommunityId:
+          type: string
+          description: ID of the cell community
+        ministryCommunityId:
+          type: string
+          description: ID of the ministry community

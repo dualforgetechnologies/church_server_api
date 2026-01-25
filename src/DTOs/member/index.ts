@@ -51,6 +51,13 @@ export const createMemberDto = z.object({
     notificationSettings: z.record(z.any()).optional(),
 });
 
+export const updateMemberCommunityDto = z.object({
+    professionCommunityId: z.string().optional(),
+    tribeCommunityId: z.string().optional(),
+    cellCommunityId: z.string().optional(),
+    ministryCommunityId: z.string().optional(),
+});
+
 export const createGuestMemberDto = z.object({
     ...baseMemberFields,
 
@@ -111,3 +118,5 @@ export type CreateMemberDto = z.infer<typeof createMemberDto>;
 export type CreateGuestMemberDto = z.infer<typeof createGuestMemberDto>;
 export type UpdateMemberDto = z.infer<typeof updateMemberDto>;
 export type MemberListQueryDto = z.infer<typeof memberListQueryDto>;
+
+export type UpdateMemberCommunityDto = z.infer<typeof updateMemberCommunityDto>;
