@@ -140,7 +140,7 @@ export class UserService extends Service {
                 });
 
                 if (roleId) {
-                    const roleExists = await this.roleRepo.findById({
+                    const roleExists = await this.roleRepo.findUnique({
                         id: roleId,
                         tenantId,
                     });
@@ -503,9 +503,9 @@ export class UserService extends Service {
      * @param id - User identifier
      * @returns Standardized application response
      */
-    async findById(id: string): Promise<AppResponse> {
+    async findUnique(id: string): Promise<AppResponse> {
         return this.run(async () => {
-            const user = await this.userRepo.findById({ id }, { include: { member: true, userRole: true } });
+            const user = await this.userRepo.findUnique({ id }, { include: { member: true, userRole: true } });
 
             if (!user) {
                 return this.error('User not found', StatusCodes.NOT_FOUND);

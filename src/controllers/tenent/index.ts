@@ -89,7 +89,7 @@ export class TenantController extends Controller {
     getTenantById = async (req: Request, res: Response) => {
         try {
             const { id } = req.params;
-            const result = await this.tenantService.findById(id);
+            const result = await this.tenantService.getTenantById(id);
             return this.response(res, result);
         } catch (error) {
             return this.error({

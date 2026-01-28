@@ -39,7 +39,7 @@ export class MemberService extends Service {
      * @throws Error if tenant does not exist
      */
     private async validateTenant(tenantId: string): Promise<void> {
-        const tenant = await this.tenantRepo.findById({ id: tenantId });
+        const tenant = await this.tenantRepo.findUnique({ id: tenantId });
         if (!tenant) {
             throw new Error(`Tenant with ID "${tenantId}" does not exist`);
         }
@@ -56,7 +56,7 @@ export class MemberService extends Service {
         if (!branchId) {
             return;
         }
-        const branch = await this.branchRepo.findById({ id: branchId });
+        const branch = await this.branchRepo.findUnique({ id: branchId });
         if (!branch) {
             throw new Error(`Branch with ID "${branchId}" not found`);
         }
@@ -74,7 +74,7 @@ export class MemberService extends Service {
      */
     async updateMember(id: string, data: UpdateMemberDto, tenantId: string): Promise<AppResponse> {
         return this.run(async () => {
-            const existing = await this.memberRepo.findById({ id });
+            const existing = await this.memberRepo.findUnique({ id });
             if (!existing) {
                 throw new Error(`Member with ID "${id}" does not exist`);
             }
@@ -155,7 +155,7 @@ export class MemberService extends Service {
      */
     async getMemberById(id: string, options?: { tenantId?: string; branchId?: string }): Promise<AppResponse> {
         return this.run(async () => {
-            const member = await this.memberRepo.findById({ id });
+            const member = await this.memberRepo.findUnique({ id });
 
             if (!member || member.isDeleted) {
                 throw new Error(`Member with ID "${id}" not found`);

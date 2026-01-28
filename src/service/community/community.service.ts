@@ -146,7 +146,7 @@ export class CommunityService extends Service {
 
     async updateCommunity(id: string, tenantId: string, data: UpdateCommunityDto): Promise<AppResponse> {
         return this.run(async () => {
-            const existing = await this.communityRepo.findById({ id, tenantId });
+            const existing = await this.communityRepo.findUnique({ id, tenantId });
             if (!existing) {
                 throw new Error(`Community with ID "${id}" not found`);
             }
@@ -195,7 +195,7 @@ export class CommunityService extends Service {
         type?: CommunityType,
     ): Promise<AppResponse<Community>> {
         return this.run(async () => {
-            const community = await this.communityRepo.findById<Prisma.CommunityInclude>(
+            const community = await this.communityRepo.findUnique<Prisma.CommunityInclude>(
                 { id, tenantId, ...(type && { type }) },
                 {
                     include: {

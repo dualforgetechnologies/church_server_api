@@ -150,9 +150,9 @@ export class TenantService extends Service {
      * @param id - Tenant ID.
      * @returns Standardized response containing the tenant data.
      */
-    async findById(id: string): Promise<AppResponse> {
+    async getTenantById(id: string): Promise<AppResponse> {
         return this.run(async () => {
-            const tenant = await this.tenantRepo.findById({ id });
+            const tenant = await this.tenantRepo.findUnique({ id });
             if (!tenant) {
                 return this.error('Tenant not found', StatusCodes.NOT_FOUND);
             }

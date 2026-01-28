@@ -214,7 +214,7 @@ export class CommunityMemberService extends Service {
         data: UpdateCommunityMemberDto,
     ): Promise<AppResponse> {
         return this.run(async () => {
-            const existing = await this.communityMemberRepo.findById<Prisma.CommunityMemberInclude>(
+            const existing = await this.communityMemberRepo.findUnique<Prisma.CommunityMemberInclude>(
                 {
                     communityId_memberId: {
                         communityId,
@@ -256,7 +256,7 @@ export class CommunityMemberService extends Service {
 
     async getCommunityMemberById(communityId: string, memberId: string, tenantId: string): Promise<AppResponse> {
         return this.run(async () => {
-            const member = await this.communityMemberRepo.findById({
+            const member = await this.communityMemberRepo.findUnique({
                 communityId_memberId: {
                     communityId,
                     memberId,

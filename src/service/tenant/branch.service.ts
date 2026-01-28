@@ -82,13 +82,13 @@ export class BranchService extends Service {
      * @throws Error if tenant or parent branch does not exist or belongs to a different tenant
      */
     private async validateTenantAndParent(tenantId: string, parentBranchId?: string): Promise<void> {
-        const tenant = await this.tenantRepo.findById({ id: tenantId });
+        const tenant = await this.tenantRepo.findUnique({ id: tenantId });
         if (!tenant) {
             throw new Error(`Tenant with ID "${tenantId}" does not exist`);
         }
 
         if (parentBranchId) {
-            const parentBranch = await this.branchRepo.findById({
+            const parentBranch = await this.branchRepo.findUnique({
                 id: parentBranchId,
             });
             if (!parentBranch) {
@@ -181,7 +181,7 @@ export class BranchService extends Service {
      */
     async updateBranch(id: string, data: UpdateBranchDto): Promise<AppResponse> {
         return this.run(async () => {
-            const existing = await this.branchRepo.findById({ id });
+            const existing = await this.branchRepo.findUnique({ id });
             if (!existing) {
                 throw new Error(`Branch with ID "${id}" does not exist`);
             }
@@ -218,7 +218,7 @@ export class BranchService extends Service {
      */
     async updateBranchHierarchy(id: string, data: UpdateBranchHierarchyDto): Promise<AppResponse> {
         return this.run(async () => {
-            const existing = await this.branchRepo.findById({ id });
+            const existing = await this.branchRepo.findUnique({ id });
             if (!existing) {
                 throw new Error(`Branch with ID "${id}" does not exist`);
             }
@@ -294,7 +294,7 @@ export class BranchService extends Service {
             const { branchId, userId, isPrimary = false } = data;
 
             // Ensure the branch exists
-            const branch = await this.branchRepo.findById({ id: branchId });
+            const branch = await this.branchRepo.findUnique({ id: branchId });
             if (!branch) {
                 throw new Error(`Branch with ID "${branchId}" not found`);
             }
@@ -419,7 +419,7 @@ export class BranchService extends Service {
      */
     async getBranchById(id: string, tenantId: string): Promise<AppResponse> {
         return this.run(async () => {
-            const branch = await this.branchRepo.findById(
+            const branch = await this.branchRepo.findUnique(
                 {
                     id,
                     tenantId,

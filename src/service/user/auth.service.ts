@@ -128,7 +128,7 @@ export class AuthService extends Service {
                 });
             }
             if (user?.tenantId) {
-                tenant = await this.tenantRepo.findById({ id: user.tenantId });
+                tenant = await this.tenantRepo.findUnique({ id: user.tenantId });
             }
             const expiry = getExpiryDateFromNow(AppConfig.jwt.resetLinkExpiresIn as StringValue);
             const token = this.jwtService.generateAccessToken(
@@ -246,7 +246,7 @@ export class AuthService extends Service {
 
     async getProfile(user: User): Promise<AppResponse> {
         return this.run(async () => {
-            const existing = await this.userRepo.findById<Prisma.UserInclude>(
+            const existing = await this.userRepo.findUnique<Prisma.UserInclude>(
                 { id: user.id },
                 {
                     include: {

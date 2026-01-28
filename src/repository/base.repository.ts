@@ -8,6 +8,7 @@ export abstract class BaseRepository<
     TWhereUniqueInput,
     TOrderByInput,
     TDelegate extends {
+        findUnique: (args: { where: TWhereUniqueInput }) => Promise<TModel | null>;
         findFirst: (args: {
             where?: TWhereInput;
             orderBy?: TOrderByInput;
@@ -42,22 +43,18 @@ export abstract class BaseRepository<
         return this.model.update({ where, data });
     }
 
-    async findById<TInclude = undefined, TSelect = undefined>(
+    async findUnique<TInclude = undefined, TSelect = undefined>(
         where: TWhereUniqueInput,
         options?: {
             include?: TInclude;
             select?: TSelect;
         },
     ): Promise<TModel | null> {
-        const query = { where } as Record<string, unknown>;
-        if (options?.include) {
-            query.include = options.include;
-        }
-        if (options?.select) {
-            query.select = options.select;
-        }
-
-        return this.model.findFirst(query);
+        return this.model.findUnique({
+            where,
+            ...(options?.include && { include: options.include }),
+            ...(options?.select && { select: options.select }),
+        });
     }
     async findFirst<TInclude = undefined, TSelect = undefined>(
         where?: TWhereInput,

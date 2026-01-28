@@ -79,7 +79,7 @@ export class RoleService extends Service {
 
     async updateRole(id: string, dto: UpdateRoleDto, actingUser: User, tenantId: string): Promise<AppResponse> {
         return this.run(async () => {
-            const role = await this.roleRepo.findById({ id, tenantId });
+            const role = await this.roleRepo.findUnique({ id, tenantId });
             if (!role) {
                 return this.error('Role not found', StatusCodes.NOT_FOUND);
             }
@@ -158,7 +158,7 @@ export class RoleService extends Service {
 
     async deleteRole(id: string, dto: DeleteRoleDto, tenantId: string): Promise<AppResponse> {
         return this.run(async () => {
-            const role = await this.roleRepo.findById({ id, tenantId });
+            const role = await this.roleRepo.findUnique({ id, tenantId });
             if (!role) {
                 return this.error('Role not found', StatusCodes.NOT_FOUND);
             }

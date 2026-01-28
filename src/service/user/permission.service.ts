@@ -75,7 +75,7 @@ export class PermissionService extends Service {
 
     async updatePermission(id: string, dto: UpdatePermissionDto, actingUser: User): Promise<AppResponse> {
         return this.run(async () => {
-            const permission = await this.permissionRepo.findById({ id });
+            const permission = await this.permissionRepo.findUnique({ id });
             if (!permission) {
                 return this.error('Permission not found', StatusCodes.NOT_FOUND);
             }

@@ -92,7 +92,7 @@ export class UserController extends Controller {
     getUserById = async (req: Request, res: Response) => {
         try {
             const { id } = req.params;
-            const result = await this.userService.findById(id);
+            const result = await this.userService.findUnique(id);
             return this.response(res, result);
         } catch (error) {
             return this.error({
