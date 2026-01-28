@@ -3,6 +3,7 @@ import { AppConfig } from '@/config/app-config';
 import {
     AccountActivation,
     ActivateAccount,
+    CommunityMemberRoleUpdate,
     NewCommunityMember,
     NewOrganizationAccount,
     NotifyCommunityLeaderMemberJoined,
@@ -124,6 +125,25 @@ export class MailService extends MailClient {
         });
     };
 
+    notifyCommunityMemberRoleUpdate = async (params: CommunityMemberRoleUpdate): Promise<boolean> => {
+        const html = this.generateMail(EmailTemplateName.NOTIFY_COMMUNITY_MEMBER_ROLE_UPDATE, {
+            FIRST_NAME: params.firstName,
+            LAST_NAME: params.lastName,
+            USER_EMAIL: params.email,
+            ORGANIZATION_NAME: params.organizationName,
+            ORGANIZATION_LOGO: params?.logo ?? DEFAULT_CHURCH_LOGO,
+            NEW_ROLE: params.newRole,
+            PREVIOUS_ROLE: params.previousRole,
+            COMMUNITY_NAME: params.communityName,
+            ACTING_USER: params.changedBy,
+        });
+
+        return this.sendMail({
+            to: params.email,
+            subject: `${params.organizationName} Platform`,
+            html,
+        });
+    };
     sendOnboardingWelcomeMail = async (params: Partial<NewOrganizationAccount>): Promise<boolean> => {
         const html = this.generateMail(EmailTemplateName.USER_COMPLETED_ONBOARDING, {
             FIRST_NAME: params.firstName,

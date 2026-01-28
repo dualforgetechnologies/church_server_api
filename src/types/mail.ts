@@ -11,6 +11,7 @@ export enum EmailTemplateName {
     USER_COMPLETED_ONBOARDING = 'user-completed-onboarding',
     INVOICE_NOTIFICATION = 'customer-invoice-notification',
     COMMUNITY_NEW_MEMBER = 'community-new-member',
+    NOTIFY_COMMUNITY_MEMBER_ROLE_UPDATE = 'notify-community-member-role-change',
     PURCHASE_ORDER_NOTIFICATION = 'purchase-order-notification',
     NEW_MP_CHAT_ALERT = 'mp-chat-message-alert',
     NOTIFY_COMMUNITY_LEADER_MEMBER_JOINED = 'notify-community-leader-member-joined',
@@ -58,6 +59,15 @@ export interface NewCommunityMember extends BaseMailOptions {
     firstName: string;
     lastName: string;
     role: string;
+    communityName: string;
+}
+export interface CommunityMemberRoleUpdate extends BaseMailOptions {
+    email: string;
+    firstName: string;
+    lastName: string;
+    newRole: string;
+    previousRole: string;
+    changedBy: string;
     communityName: string;
 }
 
@@ -133,6 +143,9 @@ export type MailTemplateParamKey =
     | 'ORGANIZATION_LOGO'
     | 'COMMUNITY_NAME'
     | 'MEMBER_NAME'
-    | 'JOINED_DATE';
+    | 'JOINED_DATE'
+    | 'PREVIOUS_ROLE'
+    | 'NEW_ROLE'
+    | 'ACTING_USER';
 
 export type TemplateParams = Partial<Record<MailTemplateParamKey, string | number>>;

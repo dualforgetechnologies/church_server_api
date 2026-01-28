@@ -10,6 +10,7 @@ import {
 } from '@/DTOs/community/community.dto';
 import { CommunityMemberRepository, CommunityRepository } from '@/repository/community/community.repository';
 import { MemberRepository } from '@/repository/member.repository';
+import { formatReadableLabel } from '@/utils/common';
 import { MailService } from '../transports/email/mail.service';
 
 export class CommunityMemberService extends Service {
@@ -210,10 +211,29 @@ export class CommunityMemberService extends Service {
     async updateCommunityMember(
         communityId: string,
         memberId: string,
-        tenantId: string,
+        tenant: Tenant,
+        actingUserId: string,
         data: UpdateCommunityMemberDto,
     ): Promise<AppResponse> {
         return this.run(async () => {
+            const community = await this.communityRepo.findUnique({
+                id: communityId,
+                tenantId: tenant.id,
+            });
+            const member = await this.memberRepo.findUnique({
+                id: memberId,
+                tenantId: tenant.id,
+            });
+
+            const actingUserInfo = await this.memberRepo.findFirst({
+                userId: actingUserId,
+            });
+            if (!community) {
+                return this.error(`No community found with id   ${communityId}`);
+            }
+            if (!member) {
+                return this.error(`No member found with id   ${memberId}`);
+            }
             const existing = await this.communityMemberRepo.findUnique<Prisma.CommunityMemberInclude>(
                 {
                     communityId_memberId: {
@@ -247,6 +267,28 @@ export class CommunityMemberService extends Service {
                     }),
                 },
             );
+
+            // notifaction
+            try {
+                if (data.role) {
+                    if (existing.role !== data.role) {
+                        this.mailService.notifyCommunityMemberRoleUpdate({
+                            email: member.email,
+                            firstName: member.firstName,
+                            lastName: member.lastName,
+                            newRole: formatReadableLabel(data.role),
+                            previousRole: formatReadableLabel(existing.role) ?? 'N/A',
+                            changedBy: actingUserInfo?.id
+                                ? `${actingUserInfo.firstName} ${actingUserInfo.lastName}`
+                                : 'Admin',
+                            communityName: community.name,
+                            to: member.email,
+                            logo: tenant.logo ?? '',
+                            organizationName: tenant.name,
+                        });
+                    }
+                }
+            } catch (error) {}
             return this.success({
                 data: updated,
                 message: 'Community member updated successfully',
@@ -256,7 +298,7 @@ export class CommunityMemberService extends Service {
 
     async getCommunityMemberById(communityId: string, memberId: string, tenantId: string): Promise<AppResponse> {
         return this.run(async () => {
-            const member = await this.communityMemberRepo.findUnique({
+            const member = await this.communityMemberRepo.findUnique<Prisma.CommunityMemberInclude>({
                 communityId_memberId: {
                     communityId,
                     memberId,
@@ -264,6 +306,10 @@ export class CommunityMemberService extends Service {
                 community: {
                     tenantId,
                 },
+            },{
+                include:{
+                    member:true
+                }
             });
             if (!member) {
                 throw new Error(`record with community id "${communityId}" and memberId "${memberId}"  not found`);

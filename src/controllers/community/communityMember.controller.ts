@@ -58,9 +58,9 @@ export class CommunityMemberController extends Controller {
         try {
             const { communityId, memberId } = req.params;
             const payload = req.body as UpdateCommunityMemberDto;
-            const tenantId = req?.tenantId;
+            const tenant = req?.tenant;
 
-            if (!tenantId) {
+            if (!tenant) {
                 return this.error({
                     res,
                     logger: this.logger,
@@ -71,7 +71,8 @@ export class CommunityMemberController extends Controller {
             const result = await this.communityMemberService.updateCommunityMember(
                 communityId,
                 memberId,
-                tenantId,
+                tenant,
+                req.user.id,
                 payload,
             );
             return this.response(res, result);
