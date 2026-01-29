@@ -4,6 +4,7 @@ import {
     Member,
     MemberStatus,
     MemberType,
+    Prisma,
     PrismaClient,
     ProfessionType,
     Tenant,
@@ -505,7 +506,29 @@ export class UserService extends Service {
      */
     async findUnique(id: string): Promise<AppResponse> {
         return this.run(async () => {
-            const user = await this.userRepo.findUnique({ id }, { include: { member: true, userRole: true } });
+            const user = await this.userRepo.findUnique<Prisma.UserInclude>(
+                { id },
+                {
+                    include: {
+                        member: true,
+                        tenant: true,
+                        Branch: true,
+                        roleAssignments: {
+                            include: {
+                                role: {
+                                    include: {
+                                        permissions: {
+                                            include: {
+                                                permission: true,
+                                            },
+                                        },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            );
 
             if (!user) {
                 return this.error('User not found', StatusCodes.NOT_FOUND);
