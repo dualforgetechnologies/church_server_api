@@ -54,10 +54,7 @@ export class MemberController extends Controller {
                     message: 'Authenicated church context is required',
                 });
             }
-            const result = await this.memberService.getMemberById(id, {
-                tenantId,
-                ...(branchId && { branchId }),
-            });
+            const result = await this.memberService.getMemberById(id, tenantId, branchId);
             return this.response(res, result);
         } catch (error) {
             return this.error({

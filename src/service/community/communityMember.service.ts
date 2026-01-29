@@ -298,19 +298,22 @@ export class CommunityMemberService extends Service {
 
     async getCommunityMemberById(communityId: string, memberId: string, tenantId: string): Promise<AppResponse> {
         return this.run(async () => {
-            const member = await this.communityMemberRepo.findUnique<Prisma.CommunityMemberInclude>({
-                communityId_memberId: {
-                    communityId,
-                    memberId,
+            const member = await this.communityMemberRepo.findUnique<Prisma.CommunityMemberInclude>(
+                {
+                    communityId_memberId: {
+                        communityId,
+                        memberId,
+                    },
+                    community: {
+                        tenantId,
+                    },
                 },
-                community: {
-                    tenantId,
+                {
+                    include: {
+                        member: true,
+                    },
                 },
-            },{
-                include:{
-                    member:true
-                }
-            });
+            );
             if (!member) {
                 throw new Error(`record with community id "${communityId}" and memberId "${memberId}"  not found`);
             }

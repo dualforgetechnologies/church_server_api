@@ -199,6 +199,8 @@ export class CommunityService extends Service {
                 { id, tenantId, ...(type && { type }) },
                 {
                     include: {
+                        branch: true,
+                        tenant: true,
                         creator: {
                             select: {
                                 id: true,
@@ -278,6 +280,8 @@ export class CommunityService extends Service {
                 },
                 {
                     include: {
+                        branch: true,
+                        tenant: true,
                         creator: {
                             select: {
                                 id: true,

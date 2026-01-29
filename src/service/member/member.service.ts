@@ -131,10 +131,37 @@ export class MemberService extends Service {
                 [sortBy]: sortOrder,
             };
 
-            const res = await this.memberRepo.findAll(where, orderBy, {
-                page,
-                limit,
-            });
+            const res = await this.memberRepo.findAll<Prisma.MemberInclude>(
+                where,
+                orderBy,
+                {
+                    page,
+                    limit,
+                },
+                {
+                    include: {
+                        branch: true,
+                        tenant: true,
+                        user: {
+                            include: {
+                                roleAssignments: {
+                                    include: {
+                                        role: {
+                                            include: {
+                                                permissions: {
+                                                    include: {
+                                                        permission: true,
+                                                    },
+                                                },
+                                            },
+                                        },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            );
 
             return this.success({
                 data: res.data,
@@ -153,19 +180,40 @@ export class MemberService extends Service {
      * @param options.branchId - Branch ID to validate ownership
      * @returns AppResponse containing the member details
      */
-    async getMemberById(id: string, options?: { tenantId?: string; branchId?: string }): Promise<AppResponse> {
+    async getMemberById(id: string, tenantId: string, branchId?: string): Promise<AppResponse> {
         return this.run(async () => {
-            const member = await this.memberRepo.findUnique({ id });
+            const member = await this.memberRepo.findUnique(
+                { id, tenantId },
+                {
+                    include: {
+                        branch: true,
+                        tenant: true,
+                        user: {
+                            include: {
+                                roleAssignments: {
+                                    include: {
+                                        role: {
+                                            include: {
+                                                permissions: {
+                                                    include: {
+                                                        permission: true,
+                                                    },
+                                                },
+                                            },
+                                        },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            );
 
             if (!member || member.isDeleted) {
                 throw new Error(`Member with ID "${id}" not found`);
             }
 
-            if (options?.tenantId && member.tenantId !== options.tenantId) {
-                throw new Error('Member does not belong to the specified tenant');
-            }
-
-            if (options?.branchId && member.branchId !== options.branchId) {
+            if (branchId && member.branchId !== branchId) {
                 throw new Error('Member does not belong to the specified branch');
             }
 
