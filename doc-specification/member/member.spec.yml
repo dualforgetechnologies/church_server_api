@@ -151,7 +151,7 @@ components:
   schemas:
     Gender:
       type: string
-      enum: [MALE, FEMALE, OTHER]
+      enum: [MALE, FEMALE]
 
     MaritalStatus:
       type: string

@@ -182,12 +182,17 @@ export class MemberService extends Service {
      */
     async getMemberById(id: string, tenantId: string, branchId?: string): Promise<AppResponse> {
         return this.run(async () => {
-            const member = await this.memberRepo.findUnique(
+            const member = await this.memberRepo.findUnique<Prisma.MemberInclude>(
                 { id, tenantId },
                 {
                     include: {
                         branch: true,
                         tenant: true,
+                        CommunityMember: {
+                            include: {
+                                community: true,
+                            },
+                        },
                         user: {
                             include: {
                                 roleAssignments: {

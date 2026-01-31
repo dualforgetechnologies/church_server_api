@@ -20,7 +20,7 @@ import Logger from '@/config/logger';
 import { MemberRepository } from '@/repository/member.repository';
 import { UserRepository } from '@/repository/user.repository';
 import { AppResponse } from '@/types/types';
-import { formatReadableLabel, getExpiryDateFromNow, toMonthString } from '@/utils/common';
+import { formatReadableLabel, getExpiryDateFromNow, ministryLabel, toMonthString } from '@/utils/common';
 import { generateTempKey } from '@/utils/generateTemKey';
 import { JwtService } from '@/utils/jwtService';
 import { sanitizeAccount } from '@/utils/sanitizers/account';
@@ -327,7 +327,9 @@ export class UserService extends Service {
                     const dto: CreateCommunityDto = {
                         ...query,
                         status: 'ACTIVE',
-                        name: ` ${formatReadableLabel(gender ?? '')} ministry community`,
+
+                        name: `${ministryLabel[gender]} Ministry Community`,
+
                         membersIds: [],
                     };
 

@@ -123,3 +123,8 @@ export function toMonthString(value?: Date | string | null): Month | null {
 
     return MONTHS_ARRAY[monthIndex] ?? null;
 }
+
+export const ministryLabel = {
+    FEMALE: "Women's",
+    MALE: "Men's",
+} as const;

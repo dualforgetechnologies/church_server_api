@@ -1,8 +1,9 @@
 import Logger from '@/config/logger';
-import { Community, CommunityType, Month, Prisma, PrismaClient, Tenant } from '@prisma/client';
+import { Community, CommunityRole, CommunityType, Month, Prisma, PrismaClient, Tenant } from '@prisma/client';
 
 import { CommunityListQueryDto, CreateCommunityDto, UpdateCommunityDto } from '@/DTOs/community/community.dto';
 import { CommunityRepository } from '@/repository/community/community.repository';
+import { CommunityWithRelations } from '@/types/community';
 import { AppResponse } from '@/types/types';
 import { StatusCodes } from 'http-status-codes';
 import { Service } from '../base/service.base';
@@ -201,6 +202,17 @@ export class CommunityService extends Service {
                     include: {
                         branch: true,
                         tenant: true,
+                        members: {
+                            where: {
+                                role: {
+                                    in: [CommunityRole.LEADER, CommunityRole.ASSISTANT_LEADER],
+                                },
+                                status: 'ACTIVE',
+                            },
+                            include: {
+                                member: true,
+                            },
+                        },
                         creator: {
                             select: {
                                 id: true,
@@ -215,8 +227,29 @@ export class CommunityService extends Service {
             if (!community) {
                 return this.error(`Community with ID "${id}" not found`, StatusCodes.NOT_FOUND);
             }
+            const useCommunity = community as unknown as CommunityWithRelations;
+            const { members, ...rest } = useCommunity;
+            const leaders = members
+                .filter((m) => m.role === CommunityRole.LEADER)
+                .map((l) => {
+                    const { member, ...others } = l;
+                    return {
+                        ...others,
+                        personalInfo: member,
+                    };
+                });
+
+            const assistants = members
+                .filter((m) => m.role === CommunityRole.ASSISTANT_LEADER)
+                .map((l) => {
+                    const { member, ...others } = l;
+                    return {
+                        ...others,
+                        personalInfo: member,
+                    };
+                });
             return this.success({
-                data: community,
+                data: { ...rest, assistants, leaders },
                 message: 'Community retrieved successfully',
             });
         }, 'Failed to retrieve community');
