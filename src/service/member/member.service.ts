@@ -4,13 +4,13 @@ import { CommunityMemberRepository } from '@/repository/community/community.repo
 import { MemberRepository } from '@/repository/member.repository';
 import { BranchRepository } from '@/repository/tenant/branch.repository';
 import { TenantRepository } from '@/repository/tenant/tenant.repository';
+import { MemberWithRelations } from '@/types/member';
 import { AppResponse } from '@/types/types';
 import { CommunityType, Gender, Prisma, PrismaClient, Tenant } from '@prisma/client';
 import { StatusCodes } from 'http-status-codes';
 import { Service } from '../base/service.base';
 import { CommunityService } from '../community/community.service';
 import { CommunityMemberService } from '../community/communityMember.service';
-import { MemberWithRelations } from '@/types/member';
 
 /**
  * Service for managing members within a tenant.
@@ -223,12 +223,10 @@ export class MemberService extends Service {
                 throw new Error('Member does not belong to the specified branch');
             }
 
-            const {CommunityMember,...rest}=member as MemberWithRelations;
-
-        
+            const { CommunityMember, ...rest } = member as MemberWithRelations;
 
             return this.success({
-                data: {...rest,communities:CommunityMember},
+                data: { ...rest, communities: CommunityMember },
                 message: 'Member retrieved successfully',
             });
         }, 'Failed to retrieve member');
