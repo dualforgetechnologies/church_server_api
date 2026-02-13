@@ -40,13 +40,14 @@ model Member {
   deletedById String?
   deletedAt   DateTime?
 
-  tenant          Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  branch          Branch?           @relation("BranchMembers", fields: [branchId], references: [id], onDelete: SetNull)
-  pastoredBranch  Branch?           @relation("BranchPastor")
-  user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  Department      Department?       @relation(fields: [departmentId], references: [id])
-  departmentId    String?
-  CommunityMember CommunityMember[]
+  tenant                 Tenant                   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  branch                 Branch?                  @relation("BranchMembers", fields: [branchId], references: [id], onDelete: SetNull)
+  pastoredBranch         Branch?                  @relation("BranchPastor")
+  user                   User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  Department             Department?              @relation(fields: [departmentId], references: [id])
+  departmentId           String?
+  CommunityMember        CommunityMember[]
+  MemberBranchAssignment MemberBranchAssignment[]
 
   @@unique([tenantId, memberNumber])
   @@index([tenantId])

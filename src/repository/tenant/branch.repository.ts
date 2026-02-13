@@ -1,4 +1,4 @@
-import { Branch, Prisma, PrismaClient, UserBranchAssignment } from '@prisma/client';
+import { Branch, MemberBranchAssignment, Prisma, PrismaClient } from '@prisma/client';
 import { BaseRepository } from '../base.repository';
 
 export class BranchRepository extends BaseRepository<
@@ -18,63 +18,63 @@ export class BranchRepository extends BaseRepository<
     }
 
     async findBranchesByTenant(tenantId: string) {
-        return this.model.findMany({ where: { tenantId } });
+        return this.model.findMany({ where: { tenantId, isDeleted: false } });
     }
 }
 
-export class UserBranchAssignmentRepository extends BaseRepository<
-    UserBranchAssignment,
-    Prisma.UserBranchAssignmentCreateInput,
-    Prisma.UserBranchAssignmentUpdateInput,
-    Prisma.UserBranchAssignmentWhereInput,
-    Prisma.UserBranchAssignmentWhereUniqueInput,
-    Prisma.UserBranchAssignmentOrderByWithRelationInput,
-    Prisma.UserBranchAssignmentDelegate
+export class MemberBranchAssignmentRepository extends BaseRepository<
+    MemberBranchAssignment,
+    Prisma.MemberBranchAssignmentCreateInput,
+    Prisma.MemberBranchAssignmentUpdateInput,
+    Prisma.MemberBranchAssignmentWhereInput,
+    Prisma.MemberBranchAssignmentWhereUniqueInput,
+    Prisma.MemberBranchAssignmentOrderByWithRelationInput,
+    Prisma.MemberBranchAssignmentDelegate
 > {
-    protected model: Prisma.UserBranchAssignmentDelegate;
+    protected model: Prisma.MemberBranchAssignmentDelegate;
 
     constructor(prisma: PrismaClient) {
         super(prisma);
-        this.model = prisma.userBranchAssignment;
+        this.model = prisma.memberBranchAssignment;
     }
 
     /**
      * Find all assignments for a given branch
      * @param branchId - Branch ID
-     * @returns Array of UserBranchAssignment
+     * @returns Array of MemberBranchAssignment
      */
-    async findByBranch(branchId: string): Promise<UserBranchAssignment[]> {
+    async findByBranch(branchId: string): Promise<MemberBranchAssignment[]> {
         return this.model.findMany({ where: { branchId } });
     }
 
     /**
-     * Find all assignments for a given user
-     * @param userId - User ID
-     * @returns Array of UserBranchAssignment
+     * Find all assignments for a given member
+     * @param memberId - Member ID
+     * @returns Array of MemberBranchAssignment
      */
-    async findByUser(userId: string): Promise<UserBranchAssignment[]> {
-        return this.model.findMany({ where: { userId } });
+    async findByMember(memberId: string): Promise<MemberBranchAssignment[]> {
+        return this.model.findMany({ where: { memberId } });
     }
 
     /**
-     * Find a specific assignment by user and branch
-     * @param userId - User ID
+     * Find a specific assignment by member and branch
+     * @param memberId - Member ID
      * @param branchId - Branch ID
-     * @returns UserBranchAssignment or null
+     * @returns MemberBranchAssignment or null
      */
-    async findByUserAndBranch(userId: string, branchId: string): Promise<UserBranchAssignment | null> {
+    async findByMemberAndBranch(memberId: string, branchId: string): Promise<MemberBranchAssignment | null> {
         return this.model.findFirst({
-            where: { userId, branchId },
+            where: { memberId, branchId },
         });
     }
 
     /**
-     * Remove a user from a branch by IDs
-     * @param userId - User ID
+     * Remove a member from a branch by IDs
+     * @param memberId - Member ID
      * @param branchId - Branch ID
      */
-    async removeUserFromBranch(userId: string, branchId: string): Promise<void> {
-        const assignment = await this.findByUserAndBranch(userId, branchId);
+    async removeMemberFromBranch(memberId: string, branchId: string): Promise<void> {
+        const assignment = await this.findByMemberAndBranch(memberId, branchId);
         if (!assignment) {
             return;
         }
@@ -83,11 +83,11 @@ export class UserBranchAssignmentRepository extends BaseRepository<
     }
 
     /**
-     * Assign a user to a branch
-     * @param data - Prisma UserBranchAssignmentCreateInput
+     * Assign a member to a branch
+     * @param data - Prisma MemberBranchAssignmentCreateInput
      * @returns Created assignment
      */
-    async assignUserToBranch(data: Prisma.UserBranchAssignmentCreateInput): Promise<UserBranchAssignment> {
+    async assignMemberToBranch(data: Prisma.MemberBranchAssignmentCreateInput): Promise<MemberBranchAssignment> {
         return this.model.create({ data });
     }
 }

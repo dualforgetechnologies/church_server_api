@@ -1,0 +1,108 @@
+paths:
+  /api/v1/analytics/branches/core:
+    get:
+      tags: [Branch Analytics]
+      summary: Get core branch analytics
+      description: Retrieve core analytics data for branches under the current tenant.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Core branch analytics retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    description: Core analytics information per branch
+                  message:
+                    type: string
+                    example: Branch core analytics retrieved successfully
+                  success:
+                    type: boolean
+                    example: true
+        '401':
+          description: Unauthorized
+        '500':
+          description: Internal server error
+
+  /api/v1/analytics/branches/membership:
+    get:
+      tags: [Branch Analytics]
+      summary: Get branch membership analytics
+      description: Retrieve membership analytics data for branches under the current tenant.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Branch membership analytics retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    description: Membership analytics information per branch
+                  message:
+                    type: string
+                    example: Branch membership analytics retrieved successfully
+                  success:
+                    type: boolean
+                    example: true
+        '401':
+          description: Unauthorized
+        '500':
+          description: Internal server error
+
+  /api/v1/analytics/branches/capacity:
+    get:
+      tags: [Branch Analytics]
+      summary: Get branch capacity analytics
+      description: Retrieve capacity analytics for branches under the current tenant.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Branch capacity analytics retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    description: Capacity analytics information per branch
+                  message:
+                    type: string
+                    example: Branch capacity analytics retrieved successfully
+                  success:
+                    type: boolean
+                    example: true
+        '401':
+          description: Unauthorized
+        '500':
+          description: Internal server error
+
+components:
+  schemas:
+    BranchAnalyticsResponse:
+      type: object
+      properties:
+        branchId:
+          type: string
+        branchName:
+          type: string
+        totalMembers:
+          type: integer
+        activeMembers:
+          type: integer
+        inactiveMembers:
+          type: integer
+        capacity:
+          type: integer
+        occupancyRate:
+          type: number
+          format: float

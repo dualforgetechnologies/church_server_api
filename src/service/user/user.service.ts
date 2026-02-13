@@ -2,6 +2,7 @@ import {
     Community,
     CommunityType,
     Member,
+    MemberBranchAssignment,
     MemberStatus,
     MemberType,
     Prisma,
@@ -32,6 +33,7 @@ import { CreateCommunityDto } from '@/DTOs/community/community.dto';
 import { CreateSuperAdminDto, CreateUserDto, SignupUserDto, UpdateUserDto } from '@/DTOs/user';
 import { CommunityRepository } from '@/repository/community/community.repository';
 import { RoleRepository, UserRoleAssignmentRepository } from '@/repository/role.repository';
+import { MemberBranchAssignmentRepository } from '@/repository/tenant/branch.repository';
 import { CommunityService } from '../community/community.service';
 import { CommunityMemberService } from '../community/communityMember.service';
 
@@ -45,6 +47,7 @@ export class UserService extends Service {
     private communityRepo: CommunityRepository;
     private communityMemberService: CommunityMemberService;
     private communityService: CommunityService;
+    private memberBranchAssignmentRepo: MemberBranchAssignmentRepository;
 
     /**
      * Initializes the UserService with required repositories
@@ -63,6 +66,7 @@ export class UserService extends Service {
         this.communityRepo = new CommunityRepository(prisma);
         this.communityMemberService = new CommunityMemberService(prisma);
         this.communityService = new CommunityService(prisma);
+        this.memberBranchAssignmentRepo = new MemberBranchAssignmentRepository(prisma);
     }
 
     /**
@@ -103,6 +107,7 @@ export class UserService extends Service {
             let user: User | null = null;
             let member: Member | null = null;
             let userRoleId: string | null = null;
+            let memberBranch: MemberBranchAssignment | null = null;
 
             try {
                 const existingUser = await this.userRepo.findFirst({ email });
@@ -163,6 +168,12 @@ export class UserService extends Service {
                 // Update user with member relation
                 await this.userRepo.update({ id: user.id }, { member: { connect: { id: member.id } } });
 
+                if (branchId && member.id) {
+                    memberBranch = await this.memberBranchAssignmentRepo.create({
+                        member: { connect: { id: member.id } },
+                        branch: { connect: { id: branchId } },
+                    });
+                }
                 // Send credentials email
                 await this.mailService.sendNewMemberCredentialsMail({
                     to: email,
@@ -194,6 +205,11 @@ export class UserService extends Service {
                 }
                 if (user) {
                     await prisma.user.delete({ where: { id: user.id } }).catch(() => undefined);
+                }
+                if (memberBranch) {
+                    memberBranch = await this.memberBranchAssignmentRepo.delete({
+                        id: memberBranch.id,
+                    });
                 }
 
                 return this.error((error as Error).message || 'Failed to create user');
@@ -402,6 +418,7 @@ export class UserService extends Service {
 
             let user: User | null = null;
             let member: Member | null = null;
+            let memberBranch: MemberBranchAssignment | null = null;
 
             try {
                 const { password, email, branchId, ...memberData } = data;
@@ -448,6 +465,12 @@ export class UserService extends Service {
                 // Link member to user
                 if (member?.id) {
                     await this.userRepo.update({ id: user.id }, { member: { connect: { id: member.id } } });
+                    if (branchId) {
+                        memberBranch = await this.memberBranchAssignmentRepo.create({
+                            member: { connect: { id: member.id } },
+                            branch: { connect: { id: branchId } },
+                        });
+                    }
                 }
 
                 // Send account verification email
@@ -493,6 +516,11 @@ export class UserService extends Service {
                 }
                 if (user) {
                     await prisma.user.delete({ where: { id: user.id } }).catch(() => undefined);
+                }
+                if (memberBranch) {
+                    memberBranch = await this.memberBranchAssignmentRepo.delete({
+                        id: memberBranch.id,
+                    });
                 }
 
                 return this.error((error as Error).message || 'Failed to signup user');

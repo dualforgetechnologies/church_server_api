@@ -1,5 +1,6 @@
 import express from 'express';
 
+import analyticsRouter from './analytics';
 import branchRouter from './branch/branch.route';
 import communityRouter from './community/community.route';
 import memberRouter from './member/member.route';
@@ -27,5 +28,6 @@ router.use('/tenants', tenantRouter);
 router.use('/branches', branchRouter);
 router.use('/members', memberRouter);
 router.use('/communities', communityRouter);
+router.use('/analytics', analyticsRouter);
 
 export const Router = router;

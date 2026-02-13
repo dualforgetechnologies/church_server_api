@@ -94,13 +94,14 @@ export const closeBranchDto = z.object({
 });
 
 export const assignUserToBranchDto = z.object({
-    userId: z.string(),
+    memberId: z.string(),
     branchId: z.string(),
     isPrimary: z.boolean().default(false),
+    transfer: z.boolean().default(false),
 });
 
 export const removeUserFromBranchDto = z.object({
-    userId: z.string(),
+    memberId: z.string(),
 });
 
 export const branchListQueryDto = commonPaginationQueryDto.extend({

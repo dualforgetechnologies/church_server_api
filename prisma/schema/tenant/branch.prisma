@@ -43,11 +43,11 @@ model Branch {
   children Branch[] @relation("BranchHierarchy")
   members  Member[] @relation("BranchMembers")
 
-  users       UserBranchAssignment[]
-  departments Department[]
-  Community   Community[]
-  User        User?                  @relation(fields: [userId], references: [id])
-  userId      String?
+  BranchMembers MemberBranchAssignment[]
+  departments   Department[]
+  Community     Community[]
+  User          User?                    @relation(fields: [userId], references: [id])
+  userId        String?
 
   @@unique([tenantId, code])
   @@unique([tenantId, slug])
@@ -73,21 +73,20 @@ enum BranchStatus {
   PLANNING
 }
 
-model UserBranchAssignment {
+model MemberBranchAssignment {
   id             String           @id @default(cuid())
-  userId         String
+  memberId       String
   branchId       String
-  isPrimary      Boolean          @default(false)
   assignmentDate DateTime         @default(now())
   status         AssignmentStatus @default(ACTIVE)
 
   // Relations
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  member Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
   branch Branch @relation(fields: [branchId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, branchId])
-  @@index([userId])
+  @@unique([memberId, branchId])
+  @@index([memberId])
   @@index([branchId])
   @@index([status])
-  @@map("user_branch_assignments")
+  @@map("member_branch_assignments")
 }

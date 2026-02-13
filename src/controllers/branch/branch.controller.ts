@@ -167,7 +167,7 @@ export class BranchController extends Controller {
     assignUserToBranch = async (req: Request, res: Response) => {
         try {
             const payload = req.body as AssignUserToBranchDto;
-            const result = await this.branchService.assignUserToBranch(payload);
+            const result = await this.branchService.assignMemberToBranch(payload);
             return this.response(res, result);
         } catch (error) {
             return this.error({

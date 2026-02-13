@@ -1,7 +1,7 @@
 import { Branch, Prisma, PrismaClient } from '@prisma/client';
 
 import Logger from '@/config/logger';
-import { BranchRepository, UserBranchAssignmentRepository } from '@/repository/tenant/branch.repository';
+import { BranchRepository, MemberBranchAssignmentRepository } from '@/repository/tenant/branch.repository';
 import { TenantRepository } from '@/repository/tenant/tenant.repository';
 import { AppResponse } from '@/types/types';
 import { Service } from '../base/service.base';
@@ -25,13 +25,13 @@ import {
 export class BranchService extends Service {
     private branchRepo: BranchRepository;
     private tenantRepo: TenantRepository;
-    private branchUserAssignmentRepo: UserBranchAssignmentRepository;
+    private memberBranchAssignmentRepo: MemberBranchAssignmentRepository;
 
     constructor(prisma: PrismaClient) {
         super(new Logger('BranchService', 'BRANCH_CORE_SERVICE'));
         this.branchRepo = new BranchRepository(prisma);
         this.tenantRepo = new TenantRepository(prisma);
-        this.branchUserAssignmentRepo = new UserBranchAssignmentRepository(prisma);
+        this.memberBranchAssignmentRepo = new MemberBranchAssignmentRepository(prisma);
     }
 
     /**
@@ -289,9 +289,9 @@ export class BranchService extends Service {
      * @returns AppResponse containing the created or existing branch-user assignment
      * @throws Error if the branch or user does not exist
      */
-    async assignUserToBranch(data: AssignUserToBranchDto): Promise<AppResponse> {
+    async assignMemberToBranch(data: AssignUserToBranchDto): Promise<AppResponse> {
         return this.run(async () => {
-            const { branchId, userId, isPrimary = false } = data;
+            const { branchId, memberId, isPrimary = false, transfer } = data;
 
             // Ensure the branch exists
             const branch = await this.branchRepo.findUnique({ id: branchId });
@@ -300,14 +300,49 @@ export class BranchService extends Service {
             }
 
             // Ensure the user exists
-            const user = await this.branchRepo.exists({ id: userId });
-            if (!user) {
-                throw new Error(`User with ID "${userId}" not found`);
+            const member = await this.prisma.member.findFirst({
+                where: { id: memberId },
+            });
+            if (!member) {
+                throw new Error(`member with ID "${memberId}" not found`);
             }
 
             // Check if the user is already assigned
-            const existingAssignment = await this.branchUserAssignmentRepo.findByUserAndBranch(userId, branchId);
+            const existingAssignment = await this.memberBranchAssignmentRepo.exists({
+                branchId,
+                memberId,
+            });
+
             if (existingAssignment) {
+                if (transfer) {
+                    await this.memberBranchAssignmentRepo.update(
+                        {
+                            memberId_branchId: {
+                                branchId,
+                                memberId,
+                            },
+                        },
+                        { status: 'TRANSFERED' },
+                    );
+
+                    // Create the assignment using `connect`
+                    const assignment = await this.memberBranchAssignmentRepo.create({
+                        member: { connect: { id: memberId } },
+                        branch: { connect: { id: branchId } },
+                    });
+                    await this.prisma.member.update({
+                        where: {
+                            id: memberId,
+                        },
+                        data: {
+                            branchId,
+                        },
+                    });
+                    return this.success({
+                        data: assignment,
+                        message: 'User assigned to branch successfully',
+                    });
+                }
                 return this.success({
                     data: existingAssignment,
                     message: 'User is already assigned to this branch',
@@ -315,12 +350,18 @@ export class BranchService extends Service {
             }
 
             // Create the assignment using `connect`
-            const assignment = await this.branchUserAssignmentRepo.assignUserToBranch({
-                user: { connect: { id: userId } },
+            const assignment = await this.memberBranchAssignmentRepo.create({
+                member: { connect: { id: memberId } },
                 branch: { connect: { id: branchId } },
-                isPrimary,
             });
-
+            await this.prisma.member.update({
+                where: {
+                    id: memberId,
+                },
+                data: {
+                    branchId,
+                },
+            });
             return this.success({
                 data: assignment,
                 message: 'User assigned to branch successfully',
@@ -339,10 +380,13 @@ export class BranchService extends Service {
      */
     async removeUserFromBranch(branchId: string, data: RemoveUserFromBranchDto): Promise<AppResponse> {
         return this.run(async () => {
-            const { userId } = data;
+            const { memberId } = data;
 
             // Check if the assignment exists
-            const assignment = await this.branchUserAssignmentRepo.findByUserAndBranch(userId, branchId);
+            const assignment = await this.memberBranchAssignmentRepo.exists({
+                branchId,
+                memberId,
+            });
             if (!assignment) {
                 return this.success({
                     message: 'No assignment found for this user in the branch',
@@ -350,7 +394,25 @@ export class BranchService extends Service {
             }
 
             // Remove the assignment
-            await this.branchUserAssignmentRepo.removeUserFromBranch(userId, branchId);
+            await this.memberBranchAssignmentRepo.update(
+                {
+                    memberId_branchId: {
+                        branchId,
+                        memberId,
+                    },
+                },
+                {
+                    status: 'INACTIVE',
+                },
+            );
+            await this.prisma.member.update({
+                where: {
+                    id: memberId,
+                },
+                data: {
+                    branchId: null,
+                },
+            });
 
             return this.success({
                 message: 'User removed from branch successfully',

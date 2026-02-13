@@ -1,0 +1,204 @@
+paths:
+  /api/v1/analytics/communities/core:
+    get:
+      tags: [Community Analytics]
+      summary: Get core community analytics
+      description: Retrieve core analytics for all communities, optionally filtered by branch.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: branchId
+          in: query
+          schema: { type: string }
+      responses:
+        '200':
+          description: Core community analytics retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        communityId:
+                          type: string
+                        name:
+                          type: string
+                        type:
+                          type: string
+                        status:
+                          type: string
+                        memberCount:
+                          type: integer
+                        leaderId:
+                          type: string
+                        assistantLeaderId:
+                          type: string
+                  message:
+                    type: string
+                    example: Core community analytics retrieved successfully
+                  success:
+                    type: boolean
+                    example: true
+        '401': { description: Unauthorized }
+
+  /api/v1/analytics/communities/membership:
+    get:
+      tags: [Community Analytics]
+      summary: Get community membership analytics
+      description: Retrieve membership analytics for communities, optionally filtered by branch.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: branchId
+          in: query
+          schema: { type: string }
+      responses:
+        '200':
+          description: Community membership analytics retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        communityId:
+                          type: string
+                        totalMembers:
+                          type: integer
+                        activeMembers:
+                          type: integer
+                        inactiveMembers:
+                          type: integer
+                        newMembersLastMonth:
+                          type: integer
+                  message:
+                    type: string
+                    example: Community membership analytics retrieved successfully
+                  success:
+                    type: boolean
+                    example: true
+        '401': { description: Unauthorized }
+
+  /api/v1/analytics/communities/{communityId}:
+    get:
+      tags: [Community Analytics]
+      summary: Get detailed analytics for a specific community
+      description: Retrieve detailed analytics for a single community by its ID.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: communityId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Community detail analytics retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      communityId:
+                        type: string
+                      name:
+                        type: string
+                      type:
+                        type: string
+                      status:
+                        type: string
+                      leaderId:
+                        type: string
+                      assistantLeaderId:
+                        type: string
+                      memberCount:
+                        type: integer
+                      activeMembers:
+                        type: integer
+                      inactiveMembers:
+                        type: integer
+                      meetingSchedule:
+                        type: object
+                        additionalProperties: {}
+                      complianceNotes:
+                        type: string
+                  message:
+                    type: string
+                    example: Community detail analytics retrieved successfully
+                  success:
+                    type: boolean
+                    example: true
+        '400': { description: Missing required communityId parameter }
+        '401': { description: Unauthorized }
+
+components:
+  schemas:
+    CommunityCoreAnalyticsData:
+      type: object
+      properties:
+        communityId:
+          type: string
+        name:
+          type: string
+        type:
+          type: string
+        status:
+          type: string
+        memberCount:
+          type: integer
+        leaderId:
+          type: string
+        assistantLeaderId:
+          type: string
+
+    CommunityMembershipAnalyticsData:
+      type: object
+      properties:
+        communityId:
+          type: string
+        totalMembers:
+          type: integer
+        activeMembers:
+          type: integer
+        inactiveMembers:
+          type: integer
+        newMembersLastMonth:
+          type: integer
+
+    CommunityDetailAnalyticsData:
+      type: object
+      properties:
+        communityId:
+          type: string
+        name:
+          type: string
+        type:
+          type: string
+        status:
+          type: string
+        leaderId:
+          type: string
+        assistantLeaderId:
+          type: string
+        memberCount:
+          type: integer
+        activeMembers:
+          type: integer
+        inactiveMembers:
+          type: integer
+        meetingSchedule:
+          type: object
+          additionalProperties: {}
+        complianceNotes:
+          type: string

@@ -93,6 +93,16 @@ export const communityMembersListQueryDto = commonPaginationQueryDto.extend({
     sortBy: z.string().optional(), // e.g., "joinedAt", "role"
 });
 
+// For query parameters (optional branchId)
+export const communityAnalyticsQueryDto = z.object({
+    branchId: z.string().optional(),
+});
+
+// For route params (required communityId)
+export const communityIdParamDto = z.object({
+    communityId: z.string().min(1, 'communityId is required'),
+});
+
 export type CommunityMembersListQueryDto = z.infer<typeof communityMembersListQueryDto>;
 
 export type CreateCommunityDto = z.infer<typeof createCommunityDto>;

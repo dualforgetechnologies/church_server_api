@@ -11,3 +11,11 @@ enum RecordStatus {
   PENDING
   ARCHIVED
 }
+
+enum AssignmentStatus {
+  ACTIVE
+  INACTIVE
+  PENDING
+  SUSPENDED
+  TRANSFERED
+}

@@ -89,10 +89,3 @@ enum DepartmentRole {
   VOLUNTEER
   TRAINEE
 }
-
-enum AssignmentStatus {
-  ACTIVE
-  INACTIVE
-  PENDING
-  SUSPENDED
-}

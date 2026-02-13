@@ -1,0 +1,284 @@
+paths:
+  /api/v1/analytics/members/engagement:
+    get:
+      tags: [Member Analytics]
+      summary: Calculate member engagement
+      description: Retrieve engagement analytics for a specific member.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: memberId
+          in: query
+          required: true
+          schema: { type: string }
+        - name: branchId
+          in: query
+          schema: { type: string }
+      responses:
+        '200':
+          description: Member engagement analytics retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    description: Engagement metrics for the member
+                  message:
+                    type: string
+                    example: Member engagement analytics retrieved successfully
+                  success:
+                    type: boolean
+                    example: true
+        '400': { description: Missing required query parameter(s) }
+        '401': { description: Unauthorized }
+
+  /api/v1/analytics/members/community-health:
+    get:
+      tags: [Member Analytics]
+      summary: Calculate community health
+      description: Retrieve health metrics for a specific community.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: communityId
+          in: query
+          required: true
+          schema: { type: string }
+        - name: branchId
+          in: query
+          schema: { type: string }
+      responses:
+        '200':
+          description: Community health analytics retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    description: Health metrics for the community
+                  message:
+                    type: string
+                    example: Community health analytics retrieved successfully
+                  success:
+                    type: boolean
+                    example: true
+        '400': { description: Missing required query parameter(s) }
+        '401': { description: Unauthorized }
+
+  /api/v1/analytics/members/overloaded-leaders:
+    get:
+      tags: [Member Analytics]
+      summary: Detect overloaded leaders
+      description: Detect leaders who are managing too many members or communities.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: threshold
+          in: query
+          schema: { type: integer, default: 3 }
+        - name: branchId
+          in: query
+          schema: { type: string }
+      responses:
+        '200':
+          description: Overloaded leaders detected successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        leaderId:
+                          type: string
+                        totalCommunities:
+                          type: integer
+                        totalMembers:
+                          type: integer
+                  message:
+                    type: string
+                    example: Overloaded leaders detected successfully
+                  success:
+                    type: boolean
+                    example: true
+        '401': { description: Unauthorized }
+
+  /api/v1/analytics/members/growth-velocity:
+    get:
+      tags: [Member Analytics]
+      summary: Community growth velocity for a single community
+      description: Calculate growth velocity of a single community over a period.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: communityId
+          in: query
+          required: true
+          schema: { type: string }
+        - name: branchId
+          in: query
+          schema: { type: string }
+        - name: startDate
+          in: query
+          schema: { type: string, format: date }
+        - name: endDate
+          in: query
+          schema: { type: string, format: date }
+        - name: windowDays
+          in: query
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Community growth velocity calculated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    description: Growth metrics for the community
+                  message:
+                    type: string
+                    example: Community growth velocity calculated successfully
+                  success:
+                    type: boolean
+                    example: true
+        '400': { description: Missing required query parameter(s) }
+        '401': { description: Unauthorized }
+
+  /api/v1/analytics/members/growth-velocity/multi:
+    get:
+      tags: [Member Analytics]
+      summary: Community growth velocity across multiple communities
+      description: Calculate growth velocity for multiple communities over a period.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: branchId
+          in: query
+          schema: { type: string }
+        - name: startDate
+          in: query
+          schema: { type: string, format: date }
+        - name: endDate
+          in: query
+          schema: { type: string, format: date }
+        - name: windowDays
+          in: query
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Community growth velocity across communities calculated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        communityId:
+                          type: string
+                        growthRate:
+                          type: number
+                  message:
+                    type: string
+                    example: Community growth velocity across communities calculated successfully
+                  success:
+                    type: boolean
+                    example: true
+        '401': { description: Unauthorized }
+
+  /api/v1/analytics/members/leader-load:
+    get:
+      tags: [Member Analytics]
+      summary: Analyze leader load
+      description: Analyze the workload of a leader based on the number of members they oversee.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: memberId
+          in: query
+          required: true
+          schema: { type: string }
+        - name: branchId
+          in: query
+          schema: { type: string }
+      responses:
+        '200':
+          description: Leader load analyzed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    description: Metrics indicating the leader's load
+                  message:
+                    type: string
+                    example: Leader load analyzed successfully
+                  success:
+                    type: boolean
+                    example: true
+        '400': { description: Missing required query parameter(s) }
+        '401': { description: Unauthorized }
+
+components:
+  schemas:
+    CommunityGrowthVelocityData:
+      type: object
+      properties:
+        communityId:
+          type: string
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type: string
+          format: date
+        windowDays:
+          type: integer
+        growthRate:
+          type: number
+    MemberEngagementData:
+      type: object
+      properties:
+        memberId:
+          type: string
+        engagementScore:
+          type: number
+        totalActivities:
+          type: integer
+        activeDays:
+          type: integer
+    CommunityHealthData:
+      type: object
+      properties:
+        communityId:
+          type: string
+        healthScore:
+          type: number
+        activeMembers:
+          type: integer
+        inactiveMembers:
+          type: integer
+    LeaderLoadData:
+      type: object
+      properties:
+        memberId:
+          type: string
+        totalMembers:
+          type: integer
+        totalCommunities:
+          type: integer

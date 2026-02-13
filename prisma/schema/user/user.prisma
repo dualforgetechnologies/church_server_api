@@ -27,7 +27,6 @@ model User {
   member                   Member?
   roleAssignments          UserRoleAssignment[]
   permissionOverrides      UserPermissionOverride[]
-  branches                 UserBranchAssignment[]
   // departments           UserDepartmentAssignment[]
   // auditLogs             AuditLog[]
   AuditLog                 AuditLog[]
